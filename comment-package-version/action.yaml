@@ -1,0 +1,26 @@
+name: Comment package version to PR
+description: Create or update Github PR comment with the package version
+author: Vaultinum
+runs:
+  using: composite
+  steps:
+    - name: Find package version comment
+      uses: peter-evans/find-comment@v1
+      id: find-comment
+      with:
+        issue-number: ${{ github.event.pull_request.number }}
+        comment-author: github-actions[bot]      
+        body-includes: |
+          ```
+    - name: Get package version
+      id: package-version
+      uses: martinbeentjes/npm-get-version-action@master
+    - name: Create or update package version comment
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        comment-id: ${{ steps.find-comment.outputs.comment-id }}
+        issue-number: ${{ github.event.pull_request.number }}
+        body: |
+          ```
+          ${{ steps.package-version.outputs.current-version }}
+        edit-mode: replace
