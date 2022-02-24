@@ -12,9 +12,9 @@ runs:
         comment-author: github-actions[bot]      
         body-includes: |
           ```
-    - name: Get package version
-      id: package-version
-      uses: martinbeentjes/npm-get-version-action@master
+    - name: Get package info
+      id: package
+      uses: codex-team/action-nodejs-package-info@v1
     - name: Create or update package version comment
       uses: peter-evans/create-or-update-comment@v1
       with:
@@ -22,5 +22,5 @@ runs:
         issue-number: ${{ github.event.pull_request.number }}
         body: |
           ```
-          ${{ steps.package-version.outputs.current-version }}
+          ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version  }}
         edit-mode: replace
