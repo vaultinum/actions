@@ -1,0 +1,106 @@
+name: GitHub Action Submodule Updates
+description: Update submodule and creates new pull request against parent repository
+author: Vaultinum forked from releasehub
+
+branding:
+  icon: git-pull-request
+  color: yellow
+
+inputs:
+  github_token:
+    description: Github Token
+    required: true
+  checkout_branch:
+    description: Branch to checkout
+    required: true
+  pr_against_branch:
+    description: Parent branch
+    required: true
+  parent_repository:
+    description: Parent Repository
+    required: true
+  owner:
+    description: Owner
+    required: false
+    default: vaultinum
+  submodule_name:
+    description: Submodule name
+    required: true
+  branch_name:
+    description: PR Branch name
+    required: false
+    default: update_submodule
+  label:
+    description: Update submodule commits label
+    required: false
+    default: Update Submodule
+
+runs:
+  using: composite
+
+  steps:
+    - name: Set repo temp dir 
+      shell: bash
+      run: |
+        echo "TEMP_DIR=$(mktemp -d --tmpdir=./ tmp.XXXXXXXXX)" >> $GITHUB_ENV
+
+    - name: Set environment git branch variable
+      shell: bash
+      run: |
+        GIT_PR_BRANCH=${{ inputs.branch_name }}_$GITHUB_RUN_ID
+        echo "GIT_PR_BRANCH=$GIT_PR_BRANCH" >> $GITHUB_ENV
+
+    - name: Checkout parent repository and branch
+      uses: actions/checkout@v3
+      with:
+        token: ${{ inputs.github_token }}
+        repository: ${{ inputs.parent_repository }}
+        ref: ${{ inputs.checkout_branch }}
+        submodules: true
+        fetch-depth: 0
+        path: ${{ env.TEMP_DIR }}
+
+    - name: Create new branch and push changes
+      shell: bash
+      run: |
+        cd $TEMP_DIR
+        git config user.name github-actions
+        git config user.email github-actions@github.com
+        git config submodule.${{ inputs.submodule_name }}.branch ${{ inputs.checkout_branch }}
+        git submodule update --remote
+        git checkout -b $GIT_PR_BRANCH
+        git add ${{ inputs.submodule_name }}
+        git commit -m "Update submodule ${{ inputs.submodule_name }}"
+        git push --set-upstream origin $GIT_PR_BRANCH
+
+    - name: Create pull request against target branch
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          await github.rest.pulls.create({
+            owner: '${{ inputs.owner }}',
+            repo: '${{ inputs.parent_repository }}'.split('/')[1].trim(),
+            head: `${process.env.GIT_PR_BRANCH}`,
+            base: '${{ inputs.pr_against_branch }}',
+            title: `[Auto-generated] ${{ inputs.submodule_name }} Submodule Updates - ${process.env.GITHUB_RUN_ID}`,
+            body: `[Auto-generated] ${{ inputs.submodule_name }} Submodule Updates - ${process.env.GITHUB_RUN_ID}`,
+          });
+
+    - name: Add labels
+      uses: actions/github-script@v5
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const res = await github.rest.issues.listForRepo({
+            owner: '${{ inputs.owner }}',
+            repo: '${{ inputs.parent_repository }}'.split('/')[1].trim(),
+          });
+          const pr = res.data.filter(i => i.title.includes(process.env.GITHUB_RUN_ID));
+          const prNumber = pr[0].number;  
+          await github.rest.issues.addLabels({
+            issue_number: prNumber,
+            owner: '${{ inputs.owner }}',
+            repo: '${{ inputs.parent_repository }}'.split('/')[1].trim(),
+            labels: ['${{ inputs.label }}']
+          });
