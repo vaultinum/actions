@@ -1,0 +1,19 @@
+name: Execute E2E tests
+description: Run E2E tests for applications
+author: Vaultinum
+inputs:
+  github_token:
+    description: Gothub access token
+    required: true
+  e2e_branch_name:
+    description: The e2e branch name as references
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Dispatches end to end test
+      run: |
+        curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
+        -H 'Accept: application/vnd.github.everest-preview+json' \
+        -H 'authorization: Bearer ${{ github.event.inputs.github_token }}' \
+        --data '{"ref":"${{ github.event.inputs.e2e_branch_name }}","inputs":{"application": "All", "environment" : "development"}}'
