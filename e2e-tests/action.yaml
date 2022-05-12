@@ -2,9 +2,6 @@ name: Execute E2E tests
 description: Run E2E tests for applications
 author: Vaultinum
 inputs:
-  github_token:
-    description: Gothub access token
-    required: true
   e2e_branch_name:
     description: The e2e branch name as references
     required: true
@@ -12,6 +9,13 @@ inputs:
     description: Application for which e2e test will be run ('all' to run all test)
     required: true
     default: All
+  environment:
+    description: Target environment for the application to be tested
+    required: true
+    default: development
+env:
+  E2E_ACCESS_TOKEN: ${{ secrets.E2E_ACCESS_TOKEN  }}
+
 runs:
   using: composite
   steps:
@@ -20,5 +24,5 @@ runs:
       run: |
         curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
         -H 'Accept: application/vnd.github.everest-preview+json' \
-        -H 'Authorization: token ${{ github.event.inputs.github_token }}' \
-        --data '{"ref":"${{ github.event.inputs.e2e_branch_name }}","inputs":{"application": "${{ github.event.inputs.application }}", "environment" : "development"}}'
+        -H 'Authorization: token $E2E_ACCESS_TOKEN' \
+        --data '{"ref":"${{ github.event.inputs.e2e_branch_name }}","inputs":{"application": "${{ github.event.inputs.application }}", "environment" : "${{ github.event.inputs.environment }}"}}'
