@@ -23,6 +23,7 @@ runs:
     - name: Dispatches end to end test
       shell: bash
       run: |
+        echo "Token => ${{ github.event.inputs.e2e_access_token }}"
         curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
         -H 'Accept: application/vnd.github.everest-preview+json' \
         -H 'Authorization: token ${{ github.event.inputs.e2e_access_token }}' \
