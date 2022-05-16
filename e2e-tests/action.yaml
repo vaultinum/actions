@@ -26,4 +26,4 @@ runs:
         curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
         -H 'Accept: application/vnd.github.everest-preview+json' \
         -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
-        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "environment" : "${{ steps.branch_name.outputs.short_ref }}"}}'
+        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "branch_refs" : "${{ steps.branch_name.outputs.short_ref }}"}}'
