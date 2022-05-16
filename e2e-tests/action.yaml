@@ -6,7 +6,7 @@ inputs:
     description: Access token for e2e tests
     required: true
   e2e_branch_name:
-    description: The e2e branch name as references
+    description: The e2e branch name as reference
     required: true
   application:
     description: Application for which e2e tests will be run
