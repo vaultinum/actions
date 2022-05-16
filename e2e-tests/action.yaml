@@ -20,6 +20,7 @@ runs:
   using: composite
   steps:
     - name: Extract branch name
+      shell: bash
       id: branch_name
       run: echo ::set-output name=short_ref::${GITHUB_REF#refs/*/}
     - name: Dispatches end to end test
