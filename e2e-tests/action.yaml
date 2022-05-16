@@ -14,11 +14,7 @@ inputs:
     default: ${{ github.event.repository.name }}
   environment:
     description: Target environment of the application that will be tested
-    required: false
-    default: ${{ github.ref }}
-    #  - master/main -> prod
-    #  - staging -> staging
-    #  - develop/development -> development
+    required: true
 
 runs:
   using: composite
