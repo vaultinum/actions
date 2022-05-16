@@ -15,7 +15,7 @@ inputs:
   environment:
     description: Target environment of the application that will be tested
     required: false
-    default: ${GITHUB_REF#refs/heads/}
+    default: ${{ github.ref }}
     #  - master/main -> prod
     #  - staging -> staging
     #  - develop/development -> development
