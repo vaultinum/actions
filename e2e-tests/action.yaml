@@ -10,10 +10,15 @@ inputs:
     required: true
   application:
     description: Application for which e2e tests will be run ('all' to run all test)
-    required: true
+    required: false
+    default: ${{ github.event.repository.name }}
   environment:
     description: Target environment of the application that will be tested
-    required: true
+    required: false
+    default: ${GITHUB_REF#refs/heads/}
+    #  - master/main -> prod
+    #  - staging -> staging
+    #  - develop/development -> development
 
 runs:
   using: composite
@@ -21,7 +26,10 @@ runs:
     - name: Dispatches end to end test
       shell: bash
       run: |
-        curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
-        -H 'Accept: application/vnd.github.everest-preview+json' \
-        -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
-        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "environment" : "${{ inputs.environment }}"}}'
+        echo Application -> ${{ inputs.application }}
+        echo Environment -> ${{ inputs.environment }}
+      # run: |
+      #   curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
+      #   -H 'Accept: application/vnd.github.everest-preview+json' \
+      #   -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
+      #   --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "environment" : "${{ inputs.environment }}"}}'
