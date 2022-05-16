@@ -9,27 +9,21 @@ inputs:
     description: The e2e branch name as references
     required: true
   application:
-    description: Application for which e2e tests will be run ('all' to run all test)
+    description: Application for which e2e tests will be run
     required: false
     default: ${{ github.event.repository.name }}
-  # environment:
-  #   description: Target environment of the application that will be tested
-  #   required: true
 
 runs:
   using: composite
   steps:
-    - name: Extract branch name
-      shell: bash
+    - name: Extract branch name to determine environment
       id: branch_name
+      shell: bash
       run: echo ::set-output name=short_ref::${GITHUB_REF#refs/*/}
     - name: Dispatches end to end test
       shell: bash
       run: |
-        echo Application -> ${{ inputs.application }}
-        echo Environment -> ${{ steps.branch_name.outputs.short_ref }}
-      # run: |
-      #   curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
-      #   -H 'Accept: application/vnd.github.everest-preview+json' \
-      #   -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
-      #   --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "environment" : "${{ inputs.environment }}"}}'
+        curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
+        -H 'Accept: application/vnd.github.everest-preview+json' \
+        -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
+        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "environment" : "${{ steps.branch_name.outputs.short_ref }}"}}'
