@@ -7,11 +7,8 @@ inputs:
     required: true
   e2e_branch_name:
     description: The e2e branch name as reference
-    required: true
-  application:
-    description: Application for which e2e tests will be run
     required: false
-    default: ${{ github.event.repository.name }}
+    default: main
 
 runs:
   using: composite
@@ -26,4 +23,4 @@ runs:
         curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
         -H 'Accept: application/vnd.github.everest-preview+json' \
         -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
-        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.application }}", "branch_refs" : "${{ steps.branch_name.outputs.short_ref }}"}}'
+        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ github.event.repository.name }}", "branch_refs" : "${{ steps.branch_name.outputs.short_ref }}"}}'
