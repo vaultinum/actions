@@ -1,5 +1,5 @@
 name: Execute E2E tests
-description: Run E2E tests for applications
+description: Run E2E tests of application using this action
 author: Vaultinum
 inputs:
   e2e_access_token:
@@ -13,7 +13,7 @@ runs:
   using: composite
   steps:
     - name: Extract branch name to determine environment
-      id: branch_name
+      id: application_branch_name
       shell: bash
       run: echo ::set-output name=short_ref::${GITHUB_REF#refs/*/}
     - name: Dispatches end to end test
@@ -22,4 +22,4 @@ runs:
         curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
         -H 'Accept: application/vnd.github.everest-preview+json' \
         -H 'Authorization: token ${{ inputs.e2e_access_token }}' \
-        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ github.event.repository.name }}", "branch_refs" : "${{ steps.branch_name.outputs.short_ref }}"}}'
+        --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ github.event.repository.name }}", "branch_refs" : "${{ steps.application_branch_name.outputs.short_ref }}"}}'
