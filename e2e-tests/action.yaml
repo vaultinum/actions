@@ -7,7 +7,6 @@ inputs:
     required: true
   e2e_branch_name:
     description: The e2e branch name as reference
-    required: false
     default: main
 
 runs:
