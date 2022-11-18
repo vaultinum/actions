@@ -1,0 +1,62 @@
+name: Generate changelog, merge Develop into Staging, open production PR
+
+on:
+  workflow_call:
+
+env:
+  NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  changelog:
+    # Only if the PR develop -> staging is in review
+    if: github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: develop
+      - uses: fregante/setup-git-user@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate changelog
+        run: npm run release
+      - name: Commit and push tag
+        run: git push --follow-tags origin develop
+  merge-develop:
+    needs: changelog
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v2
+    - name: Merge develop -> staging
+      uses: devmasx/merge-branch@master
+      with:
+        type: now
+        from_branch: develop
+        message: 'Merge develop into staging'
+        target_branch: staging
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+  production-pr:
+    needs: merge-develop
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        ref: staging
+    - name: Auto create PR
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: "staging"
+        destination_branch: "main"
+        pr_label: "deploy"
+        pr_title: "Deployment for Production"
+        pr_body: "Auto-generated deployment PR to 'main'"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
