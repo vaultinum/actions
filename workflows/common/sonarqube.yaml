@@ -1,0 +1,23 @@
+name: SonarQube
+inputs:
+  runner:
+    description: "The runner to use for the job"
+    required: true
+    default: "self-hosted"
+
+sonarQube:
+  name: SonarQube analysis
+  runs-on: ${{ inputs.runner }}
+  timeout-minutes: 20
+  steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_VAULTINUM_TOKEN  }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+      with:
+        args: >
+          -Dsonar.projectKey=${{ github.event.repository.name }}

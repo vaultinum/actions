@@ -1,0 +1,31 @@
+name: End-to-end tests
+
+on:
+  push:
+    branches: [develop, staging]
+
+env:
+  NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+  NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+inputs:
+  runner:
+    description: "The runner to use for the job"
+    required: true
+    default: "self-hosted"
+
+jobs:
+  tests:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Trigger e2e tests
+        uses: ../e2e-tests/action
+        with:
+          e2e_access_token: ${{ secrets.E2E_ACCESS_TOKEN }}
+          target_branch: ${{ github.ref_name }}
+          data: '{"ref":"main","inputs":{"application": "${{ github.event.repository.name }}", "branch_refs" : "${{ github.ref_name }}"}}'

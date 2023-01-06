@@ -1,0 +1,23 @@
+name: Generate changelog
+
+jobs:
+  changelog:
+    # Only if the PR develop -> staging is in review
+    if: github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: develop
+      - uses: fregante/setup-git-user@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate changelog
+        run: npm run release
+      - name: Commit and push tag
+        run: git push --follow-tags origin ${{ github.event.pull_request.head.ref }}

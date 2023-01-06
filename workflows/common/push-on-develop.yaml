@@ -1,0 +1,24 @@
+name: Staging auto-PR & SonarQube
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  sonarQube:
+    steps:
+      - uses: ./sonarqube
+  pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Auto create PR
+        uses: repo-sync/pull-request@v2
+        with:
+          destination_branch: "staging"
+          pr_label: "deploy"
+          pr_draft: true
+          pr_title: "Deployment for Staging"
+          pr_body: "Auto-generated deployment PR to 'staging'"
+          github_token: ${{ secrets.GITHUB_TOKEN }}

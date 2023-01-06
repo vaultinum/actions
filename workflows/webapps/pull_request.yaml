@@ -1,0 +1,14 @@
+name: CI
+
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+    steps:
+      - uses: ./webapp-on-push
+  sonarQube:
+    steps:
+      - uses: ../common/sonarqube

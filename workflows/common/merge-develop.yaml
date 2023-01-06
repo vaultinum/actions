@@ -1,0 +1,16 @@
+name: Merge develop
+
+merge-develop:
+  needs: changelog
+  runs-on: ubuntu-latest
+  timeout-minutes: 5
+  steps:
+    - uses: actions/checkout@v2
+    - name: Merge develop -> staging
+      uses: devmasx/merge-branch@master
+      with:
+        type: now
+        message: "Merge develop into staging"
+        from_branch: develop
+        target_branch: staging
+        github_token: ${{ secrets.GITHUB_TOKEN }}
