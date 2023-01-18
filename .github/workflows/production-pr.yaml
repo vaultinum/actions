@@ -1,0 +1,25 @@
+name: Production Pull Request
+
+on:
+  workflow_call:
+    secrets:
+      gh_token:
+        required: true
+
+production-pr:
+  runs-on: ubuntu-latest
+  timeout-minutes: 5
+  steps:
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+        ref: staging
+    - name: Auto create PR
+      uses: repo-sync/pull-request@v2
+      with:
+        source_branch: "staging"
+        destination_branch: "main"
+        pr_label: "deploy"
+        pr_title: "Deployment for Production"
+        pr_body: "Auto-generated deployment PR to 'main'"
+        github_token: ${{ secrets.gh_token }}
