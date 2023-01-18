@@ -1,0 +1,38 @@
+name: Execute E2E tests
+
+on:
+  workflow_call:
+    inputs:
+      target_api:
+        description: Target API for the e2e tests
+        type: string
+        required: true
+      e2e_branch_name:
+        description: The e2e branch name as reference
+        type: string
+        default: main
+      branch_refs:
+        description: The e2e branch refs
+        type: string
+        required: true
+      gh_event_repository_name:
+        description: Github event repository name
+        type: string
+        required: true
+    secrets:
+      e2e_access_token:
+        description: Access token for e2e tests
+        required: true
+
+jobs:
+  e2e_tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Dispatches end to end test
+        shell: bash
+        run: |
+          curl -X POST ${{ inputs.target_api }} \
+          -H 'Accept: application/vnd.github.everest-preview+json' \
+          -H 'Authorization: token ${{ secrets.e2e_access_token }}' \
+          --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.gh_event_repository_name }}", "branch_refs" : "${{ inputs.branch_refs }}"}}'

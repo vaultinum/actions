@@ -1,0 +1,32 @@
+name: Setup Node and build
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        default: false
+        type: boolean
+    secrets:
+      npm_package_access:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm ci
+      - name: ESLint
+        run: npm run eslint
+      - name: Build
+        run: npm run build
+      - name: Run tests
+        if: inputs.run_tests == true
+        run: npm run test

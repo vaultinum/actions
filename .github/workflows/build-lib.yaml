@@ -1,0 +1,74 @@
+name: Setup Node and build
+
+on:
+  workflow_call:
+    inputs:
+      generate_docs:
+        default: false
+        type: boolean
+      run_npm_install:
+        default: false
+        type: boolean
+      run_tests:
+        default: false
+        type: boolean
+    secrets:
+      npm_package_access:
+        required: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.run_npm_install }}" == true ]; then
+            npm i
+          else
+            npm ci
+          fi
+      - name: ESLint
+        run: npm run eslint
+      - name: Build
+        run: npm run build
+      - name: Run tests
+        if: inputs.run_tests == true
+        run: npm run test
+      - name: Generate docs
+        if: inputs.generate_docs == true
+        run: npm run docs
+      - name: Get current date
+        run: echo "snapshot_date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+      - name: Update snapshot version
+        run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
+        env:
+          PRE_ID: SNAPSHOT-${{ env.snapshot_date }}
+      - name: Publish snapshot
+        run: npm publish --tag=snapshot
+      - name: Find package info comment
+        uses: peter-evans/find-comment@v1
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: github-actions[bot]
+          body-includes: |
+            ```
+      - name: Get package info
+        id: package
+        uses: codex-team/action-nodejs-package-info@v1
+      - name: Create or update package info comment
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ```
+            npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
+          edit-mode: replace
