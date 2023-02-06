@@ -6,6 +6,9 @@ on:
       run_tests:
         default: false
         type: boolean
+      publish_package:
+        default: true
+        type: boolean
     secrets:
       npm_package_access:
         required: true
@@ -43,4 +46,5 @@ jobs:
       - name: Commit and push tag
         run: git push --follow-tags origin main
       - name: Publish
+        if: ${{ inputs.publish_package }} == true
         run: npm publish
