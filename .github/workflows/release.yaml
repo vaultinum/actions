@@ -7,7 +7,7 @@ on:
         default: false
         type: boolean
       publish_package:
-        default: false
+        default: true
         type: boolean
     secrets:
       npm_package_access:
