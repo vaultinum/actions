@@ -2,6 +2,9 @@ name: Generate changelog
 
 on:
   workflow_call:
+    secrets:
+      npm_package_access:
+        required: true
 
 jobs:
   changelog:
@@ -9,6 +12,8 @@ jobs:
     if: github.event.pull_request.head.ref == 'develop'
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
     steps:
       - uses: actions/checkout@v3
         with:
