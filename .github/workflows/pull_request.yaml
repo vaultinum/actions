@@ -20,3 +20,8 @@ jobs:
           pr_title: "Deployment for Staging"
           pr_body: "Auto-generated deployment PR to 'staging'"
           github_token: ${{ secrets.gh_token }}
+  sonarqube:
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets:
+      sonar_token: ${{ secrets.sonar_token }}
+      sonar_url: ${{ secrets.sonar_url }}

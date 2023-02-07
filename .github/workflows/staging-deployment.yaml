@@ -1,0 +1,92 @@
+name: Generate changelog, Merge develop, Make production Pull Request
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        default: true
+        type: boolean
+      target_api:
+        description: Target API for the e2e tests
+        type: string
+        required: true
+      e2e_branch_name:
+        description: The e2e branch name as reference
+        type: string
+        default: main
+      branch_refs:
+        description: The e2e branch refs
+        type: string
+        required: true
+      gh_event_repository_name:
+        description: Github event repository name
+        type: string
+        required: true
+    secrets:
+      npm_package_access:
+        required: true
+      e2e_access_token:
+        required: true
+
+jobs:
+  changelog:
+    # Only if the PR develop -> staging is in review
+    if: github.event.pull_request.head.ref == 'develop'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      NPM_PACKAGE_ACCESS: secrets.npm_package_access
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: develop
+      - uses: fregante/setup-git-user@v1
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: npm ci
+      - name: Generate changelog
+        run: npm run release
+      - name: Commit and push tag
+        run: git push --follow-tags origin ${{ github.event.pull_request.head.ref }}
+  merge-develop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Merge develop -> staging
+        uses: devmasx/merge-branch@master
+        with:
+          type: now
+          message: "Merge develop into staging"
+          from_branch: develop
+          target_branch: staging
+          github_token: secrets.gh_token
+  production-pr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          ref: staging
+      - name: Auto create PR
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: "staging"
+          destination_branch: "main"
+          pr_label: "deploy"
+          pr_title: "Deployment for Production"
+          pr_body: "Auto-generated deployment PR to 'main'"
+          github_token: secrets.gh_token
+  tests:
+    if: inputs.run_tests == true
+    uses: ./.github/workflows/e2e_tests.yaml
+    with:
+      target_api: https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches
+      branch_refs: staging
+      gh_event_repository_name: inputs.gh_event_repository_name
+    secrets:
+      e2e_access_token: secrets.e2e_access_token

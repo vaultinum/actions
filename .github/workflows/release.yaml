@@ -3,15 +3,6 @@ name: Release
 on:
   workflow_call:
     inputs:
-      run_tests:
-        default: false
-        type: boolean
-      run_build:
-        default: true
-        type: boolean
-      run_eslint:
-        default: true
-        type: boolean
       publish_package:
         default: true
         type: boolean
@@ -19,6 +10,10 @@ on:
       npm_package_access:
         required: true
       gh_token:
+        required: true
+      sonar_url:
+        required: true
+      sonar_token:
         required: true
 
 jobs:
@@ -30,25 +25,12 @@ jobs:
       NODE_AUTH_TOKEN: ${{ secrets.gh_token }}
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: main
-      - uses: fregante/setup-git-user@v1
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v3
         with:
           node-version: 16
           registry-url: "https://npm.pkg.github.com/"
       - name: Install dependencies
         run: npm ci
-      - name: Build
-        if: inputs.run_build == true
-        run: npm run build
-      - name: ESLint
-        if: inputs.run_eslint == true
-        run: npm run eslint
-      - name: Run tests
-        if: inputs.run_tests == true
-        run: npm run test
       - name: Generate changelog
         run: npm run release
       - name: Commit and push tag
@@ -56,3 +38,8 @@ jobs:
       - name: Publish
         if: inputs.publish_package == true
         run: npm publish
+  sonarqube:
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets:
+      sonar_token: ${{ secrets.sonar_token }}
+      sonar_url: ${{ secrets.sonar_url }}

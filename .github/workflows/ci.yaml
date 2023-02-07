@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  workflow_call:
+    inputs:
+      run_npm_install:
+        default: false
+        type: boolean
+      run_eslint:
+        default: true
+        type: boolean
+      run_build:
+        default: true
+        type: boolean
+      run_tests:
+        default: false
+        type: boolean
+      generate_docs:
+        default: false
+        type: boolean
+      run_sonar:
+        default: true
+        type: boolean
+    secrets:
+      npm_package_access:
+        required: true
+      sonar_token:
+        required: false
+      sonar_url:
+        required: false
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Install dependencies
+        run: |
+          if [ "${{ inputs.run_npm_install }}" == true ]; then
+            npm i
+          else
+            npm ci
+          fi
+      - name: ESLint
+        if: inputs.run_eslint == true
+        run: npm run eslint
+      - name: Build
+        if: inputs.run_build == true
+        run: npm run build
+      - name: Run tests
+        if: inputs.run_tests == true
+        run: npm run test
+      - name: Generate docs
+        if: inputs.generate_docs == true
+        run: npm run docs
+  sonarqube:
+    if: inputs.run_sonar == true
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets:
+      sonar_token: ${{ secrets.sonar_token }}
+      sonar_url: ${{ secrets.sonar_url }}
