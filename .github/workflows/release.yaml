@@ -6,6 +6,12 @@ on:
       run_tests:
         default: false
         type: boolean
+      run_build:
+        default: true
+        type: boolean
+      run_eslint:
+        default: true
+        type: boolean
       publish_package:
         default: true
         type: boolean
