@@ -12,6 +12,9 @@ on:
       run_tests:
         default: false
         type: boolean
+      run_eslint:
+        default: true
+        type: boolean
     secrets:
       npm_package_access:
         required: true
@@ -35,6 +38,7 @@ jobs:
             npm ci
           fi
       - name: ESLint
+        if: inputs.run_eslint == true
         run: npm run eslint
       - name: Build
         run: npm run build
