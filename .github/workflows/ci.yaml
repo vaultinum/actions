@@ -18,50 +18,38 @@ on:
       generate_docs:
         default: false
         type: boolean
-      run_sonar:
-        default: true
-        type: boolean
     secrets:
-      npm_package_access:
+      NPM_PACKAGE_ACCESS:
         required: true
-      sonar_token:
-        required: false
-      sonar_url:
-        required: false
+      GH_TOKEN:
+        required: true
+      SONAR_TOKEN:
+        required: true
+      SONAR_URL:
+        required: true
 
 jobs:
   ci:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+      NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout Current Repository
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
           node-version: 16
-      - name: Install dependencies
-        run: |
-          if [ "${{ inputs.run_npm_install }}" == true ]; then
-            npm i
-          else
-            npm ci
-          fi
-      - name: ESLint
-        if: inputs.run_eslint == true
-        run: npm run eslint
-      - name: Build
-        if: inputs.run_build == true
-        run: npm run build
-      - name: Run tests
-        if: inputs.run_tests == true
-        run: npm run test
-      - name: Generate docs
-        if: inputs.generate_docs == true
-        run: npm run docs
+      - name: Trigger ci
+        uses: vaultinum/actions/ci@v2
+        with:
+          run_npm_install: ${{ inputs.run_npm_install }}
+          run_eslint: ${{ inputs.run_eslint }}
+          run_build: ${{ inputs.run_build }}
+          run_tests: ${{ inputs.run_tests }}
+          generate_docs: ${{ inputs.generate_docs }}
   sonarqube:
-    if: inputs.run_sonar == true
     uses: ./.github/workflows/sonarqube.yaml
-    secrets:
-      sonar_token: ${{ secrets.sonar_token }}
-      sonar_url: ${{ secrets.sonar_url }}
+    secrets: inherit

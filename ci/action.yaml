@@ -1,0 +1,47 @@
+name: CI
+description: Run install dependencies, build, eslint, tests, generate docs
+author: Vaultinum
+inputs:
+  run_npm_install:
+    default: false
+    type: boolean
+  run_eslint:
+    default: true
+    type: boolean
+  run_build:
+    default: true
+    type: boolean
+  run_tests:
+    default: false
+    type: boolean
+  generate_docs:
+    default: false
+    type: boolean
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      shell: bash
+      run: |
+        if [ "${{ inputs.run_npm_install }}" == true ]; then
+          npm i
+        else
+          npm ci
+        fi
+    - name: ESLint
+      shell: bash
+      if: inputs.run_eslint == true
+      run: npm run eslint
+    - name: Build
+      shell: bash
+      if: inputs.run_build == true
+      run: npm run build
+    - name: Run tests
+      shell: bash
+      if: inputs.run_tests == true
+      run: npm run test
+    - name: Generate docs
+      shell: bash
+      if: inputs.generate_docs == true
+      run: npm run docs
