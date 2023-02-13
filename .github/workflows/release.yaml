@@ -18,6 +18,9 @@ on:
       run_sonar:
         default: true
         type: boolean
+      generate_docs:
+        default: false
+        type: boolean
       publish_package:
         default: true
         type: boolean
@@ -58,6 +61,7 @@ jobs:
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
+          generate_docs: ${{ inputs.generate_docs }}
       - name: Generate changelog
         run: npm run release
       - name: Commit and push tag
