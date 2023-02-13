@@ -3,11 +3,14 @@ name: Staging auto PR
 on:
   workflow_call:
     secrets:
-      gh_token:
+      GH_TOKEN:
         required: true
-
+      SONAR_TOKEN:
+        required: true
+      SONAR_URL:
+        required: true
 jobs:
-  pull_request:
+  open-staging-pr:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -19,4 +22,7 @@ jobs:
           pr_draft: true
           pr_title: "Deployment for Staging"
           pr_body: "Auto-generated deployment PR to 'staging'"
-          github_token: ${{ secrets.gh_token }}
+          github_token: ${{ secrets.GH_TOKEN }}
+  sonarqube:
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets: inherit

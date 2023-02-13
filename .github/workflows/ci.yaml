@@ -1,4 +1,4 @@
-name: Release
+name: CI
 
 on:
   workflow_call:
@@ -15,11 +15,8 @@ on:
       run_tests:
         default: false
         type: boolean
-      run_sonar:
-        default: true
-        type: boolean
-      publish_package:
-        default: true
+      generate_docs:
+        default: false
         type: boolean
     secrets:
       NPM_PACKAGE_ACCESS:
@@ -27,30 +24,24 @@ on:
       GH_TOKEN:
         required: true
       SONAR_TOKEN:
-        required: false
+        required: true
       SONAR_URL:
-        required: false
+        required: true
 
 jobs:
-  release:
+  ci:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Checkout Current Repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: main
-      - name: Setup Git User
-        uses: fregante/setup-git-user@v1
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 16
-          registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
         uses: vaultinum/actions/ci@v2
         with:
@@ -58,14 +49,7 @@ jobs:
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
-      - name: Generate changelog
-        run: npm run release
-      - name: Commit and push tag
-        run: git push --follow-tags origin main
-      - name: Publish
-        if: inputs.publish_package == true
-        run: npm publish
+          generate_docs: ${{ inputs.generate_docs }}
   sonarqube:
-    if: inputs.run_sonar == true
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit

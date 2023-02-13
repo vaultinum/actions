@@ -1,53 +1,59 @@
-name: Setup Node and build
+name: Setup Node and publish snapshot
 
 on:
   workflow_call:
     inputs:
-      generate_docs:
-        default: false
-        type: boolean
       run_npm_install:
-        default: false
-        type: boolean
-      run_tests:
         default: false
         type: boolean
       run_eslint:
         default: true
         type: boolean
+      run_build:
+        default: true
+        type: boolean
+      run_tests:
+        default: false
+        type: boolean
+      generate_docs:
+        default: false
+        type: boolean
+      run_sonar:
+        default: true
+        type: boolean
     secrets:
-      npm_package_access:
+      NPM_PACKAGE_ACCESS:
         required: true
+      GH_TOKEN:
+        required: true
+      SONAR_TOKEN:
+        required: false
+      SONAR_URL:
+        required: false
 
 jobs:
-  build:
+  publish-snapshot:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+      NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - name: Checkout Current Repository
+        uses: actions/checkout@v3
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
           node-version: 16
-      - name: Install dependencies
-        run: |
-          if [ "${{ inputs.run_npm_install }}" == true ]; then
-            npm i
-          else
-            npm ci
-          fi
-      - name: ESLint
-        if: inputs.run_eslint == true
-        run: npm run eslint
-      - name: Build
-        run: npm run build
-      - name: Run tests
-        if: inputs.run_tests == true
-        run: npm run test
-      - name: Generate docs
-        if: inputs.generate_docs == true
-        run: npm run docs
+          registry-url: "https://npm.pkg.github.com/"
+      - name: Trigger ci
+        uses: vaultinum/actions/ci@v2
+        with:
+          run_npm_install: ${{ inputs.run_npm_install }}
+          run_eslint: ${{ inputs.run_eslint }}
+          run_build: ${{ inputs.run_build }}
+          run_tests: ${{ inputs.run_tests }}
+          generate_docs: ${{ inputs.generate_docs }}
       - name: Get current date
         run: echo "snapshot_date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
       - name: Update snapshot version
@@ -57,7 +63,7 @@ jobs:
       - name: Publish snapshot
         run: npm publish --tag=snapshot
       - name: Find package info comment
-        uses: peter-evans/find-comment@v1
+        uses: peter-evans/find-comment@v2
         id: find-comment
         with:
           issue-number: ${{ github.event.pull_request.number }}
@@ -66,9 +72,9 @@ jobs:
             ```
       - name: Get package info
         id: package
-        uses: codex-team/action-nodejs-package-info@v1
+        uses: codex-team/action-nodejs-package-info@v1.1
       - name: Create or update package info comment
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
@@ -76,3 +82,7 @@ jobs:
             ```
             npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
           edit-mode: replace
+  sonarqube:
+    if: inputs.run_sonar == true
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets: inherit

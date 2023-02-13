@@ -3,18 +3,18 @@ name: Storybook Publish
 on:
   workflow_call:
     secrets:
-      gh_token:
+      GH_TOKEN:
         required: true
-      chromatic_project_token:
+      CHROMATIC_PROJECT_TOKEN:
         required: true
-      npm_package_access:
+      NPM_PACKAGE_ACCESS:
         required: true
 
 jobs:
   chromatic-deployment:
     runs-on: ubuntu-latest
     env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.npm_package_access }}
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -28,5 +28,5 @@ jobs:
       - name: Publish to Chromatic
         uses: chromaui/action@v1
         with:
-          token: ${{ secrets.gh_token }}
-          projectToken: ${{ secrets.chromatic_project_token }}
+          token: ${{ secrets.GH_TOKEN }}
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}

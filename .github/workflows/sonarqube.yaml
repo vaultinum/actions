@@ -8,9 +8,9 @@ on:
         type: string
         default: "self-hosted"
     secrets:
-      sonar_url:
+      SONAR_TOKEN:
         required: true
-      sonar_token:
+      SONAR_URL:
         required: true
 
 jobs:
@@ -25,8 +25,8 @@ jobs:
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
-          SONAR_TOKEN: ${{ secrets.sonar_token  }}
-          SONAR_HOST_URL: ${{ secrets.sonar_url }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN  }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
         with:
           args: >
             -Dsonar.projectKey=${{ github.event.repository.name }}
