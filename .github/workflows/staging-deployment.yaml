@@ -86,7 +86,7 @@ jobs:
           github_token: ${{ secrets.GH_TOKEN }}
   tests:
     if: inputs.run_tests == true
-    uses: ./.github/workflows/e2e_tests.yaml
+    uses: ./.github/workflows/e2e-tests.yaml
     with:
       target_api: ${{ inputs.target_api }}
       branch_refs: ${{ inputs.branch_refs }}
