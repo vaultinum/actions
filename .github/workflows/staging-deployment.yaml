@@ -9,7 +9,7 @@ on:
       target_api:
         description: Target API for the e2e tests
         type: string
-        required: true
+        required: false
       e2e_branch_name:
         description: The e2e branch name as reference
         type: string
@@ -17,11 +17,11 @@ on:
       branch_refs:
         description: The e2e branch refs
         type: string
-        required: true
+        required: false
       gh_event_repository_name:
         description: Github event repository name
         type: string
-        required: true
+        required: false
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -29,7 +29,7 @@ on:
         required: true
       E2E_ACCESS_TOKEN:
         description: Access token for e2e tests
-        required: true
+        required: false
 
 jobs:
   changelog:
