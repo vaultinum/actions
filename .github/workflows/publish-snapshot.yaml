@@ -18,9 +18,6 @@ on:
       generate_docs:
         default: false
         type: boolean
-      run_sonar:
-        default: true
-        type: boolean
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -83,6 +80,5 @@ jobs:
             npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
           edit-mode: replace
   sonarqube:
-    if: inputs.run_sonar == true
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit

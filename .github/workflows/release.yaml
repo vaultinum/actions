@@ -15,9 +15,6 @@ on:
       run_tests:
         default: false
         type: boolean
-      run_sonar:
-        default: true
-        type: boolean
       generate_docs:
         default: false
         type: boolean
@@ -67,9 +64,8 @@ jobs:
       - name: Commit and push tag
         run: git push --follow-tags origin main
       - name: Publish
-        if: inputs.publish_package == true
+        if: ${{ inputs.publish_package == true }}
         run: npm publish
   sonarqube:
-    if: inputs.run_sonar == true
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
