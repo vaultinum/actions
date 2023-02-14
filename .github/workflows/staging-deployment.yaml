@@ -55,6 +55,7 @@ jobs:
       - name: Commit and push tag
         run: git push --follow-tags origin ${{ github.event.pull_request.head.ref }}
   merge-develop:
+    needs: changelog
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -68,6 +69,7 @@ jobs:
           target_branch: staging
           github_token: ${{ secrets.GH_TOKEN }}
   production-pr:
+    needs: merge-develop
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
