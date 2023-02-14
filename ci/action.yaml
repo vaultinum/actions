@@ -24,24 +24,24 @@ runs:
     - name: Install dependencies
       shell: bash
       run: |
-        if [ "${{ inputs.run_npm_install }}" == true ]; then
+        if [ "${{ inputs.run_npm_install }}" == 'true' ]; then
           npm i
         else
           npm ci
         fi
     - name: ESLint
+      if: ${{ inputs.run_eslint == 'true' }}
       shell: bash
-      if: inputs.run_eslint == true
       run: npm run eslint
     - name: Build
+      if: ${{ inputs.run_build == 'true' }}
       shell: bash
-      if: inputs.run_build == true
       run: npm run build
     - name: Run tests
+      if: ${{ inputs.run_tests == 'true' }}
       shell: bash
-      if: inputs.run_tests == true
       run: npm run test
     - name: Generate docs
+      if: ${{ inputs.generate_docs == 'true' }}
       shell: bash
-      if: inputs.generate_docs == true
       run: npm run docs
