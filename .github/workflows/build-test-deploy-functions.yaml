@@ -1,0 +1,124 @@
+name: functions
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        default: false
+        type: boolean
+      run_deploy:
+        default: false
+        type: boolean
+      functions_environment:
+        type: string
+    secrets:
+      NPM_PACKAGE_ACCESS:
+        required: true
+      GH_TOKEN:
+        required: true
+      FIREBASE_TOKEN:
+        required: true
+      STRIPE_TEST_TOKEN:
+        required: false
+
+
+jobs:
+  dependencies:
+    name: Install dependencies
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+    outputs:
+      changed-files-specific: ${{ steps.changed-files-specific.outputs.any_changed }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Check changed on functions
+        id: changed-files-specific
+        uses: tj-actions/changed-files@v35.7.8
+        with:
+          files: functions/**
+      - name: Change npm cache directory
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: npm config set cache . --global
+      - name: Cache node modules
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        id: cache-npm
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ./.npm
+          key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: npm --prefix functions ci --cache ./.npm --prefer-offline
+  build:
+    name: Build
+    runs-on: self-hosted
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Check changed on functions
+        id: changed-files-specific
+        uses: tj-actions/changed-files@v35.7.8
+        with:
+          files: functions/**
+      - name: Install dependencies
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: npm --prefix functions ci
+      - name: ESLint
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: npm --prefix functions run eslint
+      - name: Build
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        run: npm --prefix functions run build
+      - uses: actions/upload-artifact@v3
+        if: steps.changed-files-specific.outputs.any_changed == 'true'
+        with:
+          name: functions-build-output
+          path: functions/lib
+  tests:
+    name: Tests
+    if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
+    needs: [dependencies]
+    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@KYS-2488-spike-move-kys-related-functions-to-kys-web-app
+    secrets:
+      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+      STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
+  deploy:
+    name: Deploy functions
+    if: ${{ inputs.run_deploy && inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
+    needs: [dependencies, tests]
+    runs-on: self-hosted
+    steps:
+      - name: Deploy
+        uses: vaultinum/actions/deploy-functions@KYS-2488-spike-move-kys-related-functions-to-kys-web-app
+        with:
+          NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FUNCTIONS_ENVIRONMENT: ${{ inputs.functions_environment }}
+  deploy-without-tests:
+    name: Deploy functions
+    if: ${{ inputs.run_deploy && inputs.run_tests != true && needs.dependencies.outputs.changed-files-specific == 'true' }}
+    needs: [build, dependencies]
+    runs-on: self-hosted
+    steps:
+      - name: Deploy
+        uses: vaultinum/actions/deploy-functions@KYS-2488-spike-move-kys-related-functions-to-kys-web-app
+        with:
+          NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FUNCTIONS_ENVIRONMENT: ${{ inputs.functions_environment }}
