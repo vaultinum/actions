@@ -18,7 +18,7 @@ jobs:
       STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
       - uses: actions/setup-node@v1
         with:
           node-version: 16
@@ -47,7 +47,7 @@ jobs:
       STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
       - uses: actions/setup-node@v1
         with:
           node-version: 16
@@ -75,7 +75,7 @@ jobs:
       STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@master
+        uses: actions/checkout@v3
       - uses: actions/setup-node@v1
         with:
           node-version: 16
