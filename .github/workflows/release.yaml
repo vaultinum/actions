@@ -30,6 +30,8 @@ on:
         required: false
       SONAR_URL:
         required: false
+      TEST_KEY:
+        required: false
 
 jobs:
   release:
@@ -38,6 +40,7 @@ jobs:
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TEST_KEY: ${{ secrets.TEST_KEY }}
     steps:
       - name: Checkout Current Repository
         uses: actions/checkout@v3
