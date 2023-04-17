@@ -1,32 +1,33 @@
 name: Storybook Publish
 
 on:
-  workflow_call:
-    secrets:
-      GH_TOKEN:
-        required: true
-      CHROMATIC_PROJECT_TOKEN:
-        required: true
-      NPM_PACKAGE_ACCESS:
-        required: true
+    workflow_call:
+        secrets:
+            GH_TOKEN:
+                required: true
+            CHROMATIC_PROJECT_TOKEN:
+                required: true
+            NPM_PACKAGE_ACCESS:
+                required: true
 
 jobs:
-  chromatic-deployment:
-    runs-on: ubuntu-latest
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - uses: actions/setup-node@v3
-        with:
-          node-version: 16
-          registry-url: "https://npm.pkg.github.com/"
-      - name: Install dependencies
-        run: npm i
-      - name: Publish to Chromatic
-        uses: chromaui/action@v1
-        with:
-          token: ${{ secrets.GH_TOKEN }}
-          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+    chromatic-deployment:
+        runs-on: ubuntu-latest
+        env:
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+        steps:
+            - uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: 16
+                  registry-url: "https://npm.pkg.github.com/"
+            - name: Install dependencies
+              run: npm i
+            - name: Publish to Chromatic
+              uses: chromaui/action@v1
+              with:
+                  token: ${{ secrets.GH_TOKEN }}
+                  projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+                  buildScriptName: "storybook build"
