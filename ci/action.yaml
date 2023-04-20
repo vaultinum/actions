@@ -2,46 +2,41 @@ name: CI
 description: Run install dependencies, build, eslint, tests, generate docs
 author: Vaultinum
 inputs:
-  run_npm_install:
-    default: false
-    type: boolean
-  run_eslint:
-    default: true
-    type: boolean
-  run_build:
-    default: true
-    type: boolean
-  run_tests:
-    default: false
-    type: boolean
-  generate_docs:
-    default: false
-    type: boolean
+    run_npm_install:
+        default: false
+        type: boolean
+    run_eslint:
+        default: true
+        type: boolean
+    run_build:
+        default: true
+        type: boolean
+    run_tests:
+        default: false
+        type: boolean
+    generate_docs:
+        default: false
+        type: boolean
 
 runs:
-  using: composite
-  steps:
-    - name: Install dependencies
-      shell: bash
-      run: |
-        if [ "${{ inputs.run_npm_install }}" == 'true' ]; then
-          npm i
-        else
-          npm ci
-        fi
-    - name: ESLint
-      if: ${{ inputs.run_eslint == 'true' }}
-      shell: bash
-      run: npm run eslint
-    - name: Build
-      if: ${{ inputs.run_build == 'true' }}
-      shell: bash
-      run: npm run build
-    - name: Run tests
-      if: ${{ inputs.run_tests == 'true' }}
-      shell: bash
-      run: npm run test
-    - name: Generate docs
-      if: ${{ inputs.generate_docs == 'true' }}
-      shell: bash
-      run: npm run docs
+    using: composite
+    steps:
+        - name: Install dependencies
+          shell: bash
+          run: npm i -g pnpm && pnpm i
+        - name: ESLint
+          if: ${{ inputs.run_eslint == 'true' }}
+          shell: bash
+          run: pnpm run eslint
+        - name: Build
+          if: ${{ inputs.run_build == 'true' }}
+          shell: bash
+          run: pnpm run build
+        - name: Run tests
+          if: ${{ inputs.run_tests == 'true' }}
+          shell: bash
+          run: pnpm run test
+        - name: Generate docs
+          if: ${{ inputs.generate_docs == 'true' }}
+          shell: bash
+          run: pnpm run docs
