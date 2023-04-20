@@ -101,7 +101,7 @@ jobs:
   deploy:
     name: Deploy functions
     if: ${{ inputs.run_deploy && inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
-    needs: [dependencies, tests]
+    needs: [dependencies, tests, build]
     runs-on: self-hosted
     steps:
       - name: Deploy
