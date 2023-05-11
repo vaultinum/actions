@@ -1,55 +1,64 @@
 name: CI
 
 on:
-  workflow_call:
-    inputs:
-      run_npm_install:
-        default: false
-        type: boolean
-      run_eslint:
-        default: true
-        type: boolean
-      run_build:
-        default: true
-        type: boolean
-      run_tests:
-        default: false
-        type: boolean
-      generate_docs:
-        default: false
-        type: boolean
-    secrets:
-      NPM_PACKAGE_ACCESS:
-        required: true
-      GH_TOKEN:
-        required: true
-      SONAR_TOKEN:
-        required: true
-      SONAR_URL:
-        required: true
+    workflow_call:
+        inputs:
+            run_npm_install:
+                default: false
+                type: boolean
+            run_eslint:
+                default: true
+                type: boolean
+            run_build:
+                default: true
+                type: boolean
+            run_tests:
+                default: false
+                type: boolean
+            generate_docs:
+                default: false
+                type: boolean
+        secrets:
+            NPM_PACKAGE_ACCESS:
+                required: true
+            GH_TOKEN:
+                required: true
+            SONAR_TOKEN:
+                required: true
+            SONAR_URL:
+                required: true
 
 jobs:
-  ci:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
-    steps:
-      - name: Checkout Current Repository
-        uses: actions/checkout@v3
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: 16
-      - name: Trigger ci
-        uses: vaultinum/actions/ci@v2
-        with:
-          run_npm_install: ${{ inputs.run_npm_install }}
-          run_eslint: ${{ inputs.run_eslint }}
-          run_build: ${{ inputs.run_build }}
-          run_tests: ${{ inputs.run_tests }}
-          generate_docs: ${{ inputs.generate_docs }}
-  sonarqube:
-    uses: ./.github/workflows/sonarqube.yaml
-    secrets: inherit
+    ci:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        env:
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v3
+            - name: Setup Node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 16
+            - name: Trigger ci
+              uses: vaultinum/actions/ci@v2
+              with:
+                  run_npm_install: ${{ inputs.run_npm_install }}
+                  run_eslint: ${{ inputs.run_eslint }}
+                  run_build: ${{ inputs.run_build }}
+                  run_tests: ${{ inputs.run_tests }}
+                  generate_docs: ${{ inputs.generate_docs }}
+            - name: Check package.json
+              run: |
+                  if grep SNAPSHOT package.json; then
+                    echo "SNAPSHOT found in package.json. Disabling merge button."
+                    curl -s -X POST -H "Authorization: Bearer ${{ secrets.GH_TOKEN }}" \
+                      -H "Accept: application/vnd.github.ant-man-preview+json" \
+                      -d '{"required_status_checks": {"contexts": []}, "enforce_admins": true}' \
+                      "https://api.github.com/repos/${{ github.repository }}/branches/${{ github.head_ref }}/protection"
+                  fi
+    sonarqube:
+        uses: ./.github/workflows/sonarqube.yaml
+        secrets: inherit
