@@ -36,7 +36,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
