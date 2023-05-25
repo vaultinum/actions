@@ -14,9 +14,6 @@ inputs:
   run_tests:
     default: false
     type: boolean
-  generate_docs:
-    default: false
-    type: boolean
 
 runs:
   using: composite
@@ -41,7 +38,3 @@ runs:
       if: ${{ inputs.run_tests == 'true' }}
       shell: bash
       run: npm run test
-    - name: Generate docs
-      if: ${{ inputs.generate_docs == 'true' }}
-      shell: bash
-      run: npm run docs
