@@ -15,9 +15,6 @@ on:
       run_tests:
         default: false
         type: boolean
-      generate_docs:
-        default: false
-        type: boolean
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -53,7 +50,6 @@ jobs:
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
-          generate_docs: ${{ inputs.generate_docs }}
       - name: Get current date
         run: echo "snapshot_date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
       - name: Update snapshot version
