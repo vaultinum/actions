@@ -53,3 +53,6 @@ jobs:
   sonarqube:
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+  labeler:
+    uses: ./.github/workflows/labeler.yaml
+    secrets: inherit
