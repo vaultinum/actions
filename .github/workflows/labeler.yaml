@@ -23,7 +23,5 @@ jobs:
           l_label: 'size/L'
           l_max_size: '500'
           xl_label: 'size/XL'
-          xl_max_size: '1000'
-          xxl_label: 'size/XXL'
-          fail_if_xxl: 'false'
+          message_if_xl: ''
           files_to_ignore: 'package-lock.json *.lock'
