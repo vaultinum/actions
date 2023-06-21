@@ -1,0 +1,19 @@
+name: Delete Old Packages
+
+on:
+    schedule:
+        - cron: "*/1 * * * *"
+
+jobs:
+    delete_old_packages:
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
+        steps:
+            - name: Delete old packages
+              uses: smartsquaregmbh/delete-old-packages@v0.7.0
+              with:
+                  organization: vaultinum
+                  type: npm
+                  keep: 5
+                  names: |
+                      eslint-config
