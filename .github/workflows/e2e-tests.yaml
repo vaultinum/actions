@@ -4,21 +4,21 @@ on:
   workflow_call:
     inputs:
       target_api:
+        type: string
         description: Target API for the e2e tests
-        type: string
         required: true
-      e2e_branch_name:
-        description: The e2e branch name as reference
+      sleep:
+        type: boolean
+        description: Sleep for 5 minutes
+        default: false
+      url:
         type: string
-        default: main
-      branch_refs:
-        description: The e2e branch refs
+        description: The url to test
+        required: false
+      application:
         type: string
-        required: true
-      gh_event_repository_name:
-        description: Github event repository name
-        type: string
-        required: true
+        description: The application to test
+        required: false
     secrets:
       e2e_access_token:
         description: Access token for e2e tests
@@ -35,4 +35,4 @@ jobs:
           curl -X POST ${{ inputs.target_api }} \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -H 'Authorization: token ${{ secrets.e2e_access_token }}' \
-          --data '{"ref":"${{ inputs.e2e_branch_name }}","inputs":{"application": "${{ inputs.gh_event_repository_name }}", "branch_refs" : "${{ inputs.branch_refs }}"}}'
+          --data '{"inputs":{ "sleep": "${{ inputs.sleep }}", "application": "${{ inputs.application }}", "url": "${{ inputs.url }}" }}'

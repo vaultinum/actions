@@ -4,22 +4,22 @@ on:
   workflow_call:
     inputs:
       run_tests:
-        default: true
         type: boolean
+        default: true
+      sleep:
+        type: boolean
+        description: Sleep for 5 minutes
+        default: false
       target_api:
+        type: string
         description: Target API for the e2e tests
-        type: string
         required: false
-      e2e_branch_name:
-        description: The e2e branch name as reference
+      url:
         type: string
-        default: main
-      branch_refs:
-        description: The e2e branch refs
-        type: string
+        description: The url to test
         required: false
-      gh_event_repository_name:
-        description: Github event repository name
+      application:
+        description: The application to test
         type: string
         required: false
     secrets:
@@ -91,7 +91,8 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yaml
     with:
       target_api: ${{ inputs.target_api }}
-      branch_refs: ${{ inputs.branch_refs }}
-      gh_event_repository_name: ${{ inputs.gh_event_repository_name }}
+      sleep: ${{ inputs.sleep }}
+      url: ${{ inputs.url }}
+      application: ${{ inputs.application }}
     secrets:
       e2e_access_token: ${{ secrets.E2E_ACCESS_TOKEN }}
