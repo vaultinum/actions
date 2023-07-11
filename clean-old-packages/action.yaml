@@ -1,0 +1,28 @@
+name: Clean old packages
+description: Clean old snapshots & release versions
+author: Vaultinum
+inputs:
+  package_name:
+    type: string
+  package_type:
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - uses: smartsquaregmbh/delete-old-packages@v0.7.0
+      with:
+        organization: vaultinum
+        type: ${{ inputs.package_type }}
+        version-pattern: "^\\d+\\.\\d+\\.\\d+-SNAPSHOT.*$"
+        keep: 15
+        names: |
+          ${{ inputs.package_name }}
+    - uses: smartsquaregmbh/delete-old-packages@v0.7.0
+      with:
+        organization: vaultinum
+        type: ${{ inputs.package_type }}
+        version-pattern: "^\\d+\\.\\d+\\.\\d+$"
+        keep: 5
+        names: |
+          ${{ inputs.package_name }}
