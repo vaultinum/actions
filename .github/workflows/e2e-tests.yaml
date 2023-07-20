@@ -35,4 +35,4 @@ jobs:
           curl -X POST ${{ inputs.target_api }} \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -H 'Authorization: token ${{ secrets.e2e_access_token }}' \
-          --data '{"inputs":{ "sleep": "${{ inputs.sleep }}", "application": "${{ inputs.application }}", "url": "${{ inputs.url }}" }}'
+          --data '{ "ref":"${{ github.ref_name }}", "inputs":{ "sleep": "${{ inputs.sleep }}", "application": "${{ inputs.application }}", "url": "${{ inputs.url }}" }}'
