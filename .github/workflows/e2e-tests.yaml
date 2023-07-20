@@ -3,21 +3,17 @@ name: Execute E2E tests
 on:
   workflow_call:
     inputs:
-      target_api:
-        type: string
-        description: Target API for the e2e tests
-        required: true
       sleep:
         type: boolean
         description: Sleep for 5 minutes
         default: false
-      url:
-        type: string
-        description: The url to test
-        required: false
       application:
         type: string
         description: The application to test
+        required: false
+      url:
+        type: string
+        description: The url to test
         required: false
     secrets:
       e2e_access_token:
@@ -32,7 +28,7 @@ jobs:
       - name: Dispatches end to end test
         shell: bash
         run: |
-          curl -X POST ${{ inputs.target_api }} \
+          curl -X POST https://api.github.com/repos/vaultinum/vaultinum-e2e/actions/workflows/tests.yml/dispatches \
           -H 'Accept: application/vnd.github.everest-preview+json' \
           -H 'Authorization: token ${{ secrets.e2e_access_token }}' \
-          --data '{ "ref":"${{ github.ref_name }}", "inputs":{ "sleep": "${{ inputs.sleep }}", "application": "${{ inputs.application }}", "url": "${{ inputs.url }}" }}'
+          --data '{ "ref": "main", "inputs":{ "sleep": "${{ inputs.sleep }}", "application": "${{ inputs.application }}", "url": "${{ inputs.url }}" }}'
