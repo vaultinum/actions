@@ -10,10 +10,6 @@ on:
         type: boolean
         description: Sleep for 5 minutes
         default: false
-      target_api:
-        type: string
-        description: Target API for the e2e tests
-        required: false
       url:
         type: string
         description: The url to test
@@ -90,9 +86,8 @@ jobs:
     if: ${{ inputs.run_tests == 'true' }}
     uses: ./.github/workflows/e2e-tests.yaml
     with:
-      target_api: ${{ inputs.target_api }}
       sleep: ${{ inputs.sleep }}
-      url: ${{ inputs.url }}
       application: ${{ inputs.application }}
+      url: ${{ inputs.url }}
     secrets:
       e2e_access_token: ${{ secrets.E2E_ACCESS_TOKEN }}
