@@ -83,7 +83,7 @@ jobs:
           pr_body: "Auto-generated deployment PR to 'main'"
           github_token: ${{ secrets.GH_TOKEN }}
   tests:
-    if: ${{ inputs.run_tests == 'true' }}
+    if: ${{ inputs.run_tests }}
     uses: ./.github/workflows/e2e-tests.yaml
     with:
       sleep: ${{ inputs.sleep }}
