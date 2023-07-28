@@ -30,7 +30,7 @@ on:
 jobs:
   publish-snapshot:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
