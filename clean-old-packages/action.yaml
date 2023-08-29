@@ -23,6 +23,6 @@ runs:
         organization: vaultinum
         type: ${{ inputs.package_type }}
         version-pattern: "^\\d+\\.\\d+\\.\\d+$"
-        keep: 5
+        keep: 10
         names: |
           ${{ inputs.package_name }}
