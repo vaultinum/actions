@@ -27,6 +27,10 @@ on:
       TEST_KEY:
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   publish-snapshot:
     runs-on: ubuntu-latest

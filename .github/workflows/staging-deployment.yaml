@@ -27,6 +27,10 @@ on:
         description: Access token for e2e tests
         required: false
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   changelog:
     # Only if the PR develop -> staging is in review
