@@ -1,0 +1,163 @@
+name: Deploy portainer
+
+on:
+    workflow_call:
+        inputs:
+            registry:
+                required: true
+                type: string
+                default: "ghcr.io"
+            image_name:
+                required: true
+                type: string
+            docker_component:
+                required: true
+                type: string
+            deploy_environment:
+                required: true
+                type: string
+            deploy_port:
+                required: true
+                type: number
+            volumes:
+                required: true
+                type: string
+            port_bindings:
+                required: true
+                type: number
+            exposed_ports:
+                required: true
+                type: number
+            tag:
+                type: string
+                default: "latest"
+        secrets:
+            PORTAINER_URL:
+                required: true
+            PORTAINER_API_KEY:
+                required: true
+            PORTAINER_REGISTRY_AUTH:
+                required: true
+            GH_TOKEN:
+                required: true
+concurrency:
+    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    deploy-docker:
+        name: Deploy docker image
+        runs-on: self-hosted
+        timeout-minutes: 15
+        steps:
+            - name: Login to Github docker registry
+              uses: docker/login-action@v1
+              with:
+                  registry: ${{ inputs.registry }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GH_TOKEN }}
+            - name: Pull image
+              run: |
+                  curl --insecure --request POST '${{ secrets.PORTAINER_URL }}/images/create?fromImage=${{ inputs.registry }}/${{ inputs.image_name }}&tag=${{ inputs.tag }}' \
+                       --header 'X-Registry-Auth: ${{ secrets.PORTAINER_REGISTRY_AUTH }}' \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
+            - name: List containers
+              id: containers
+              run: |
+                  curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
+                       --data-urlencode 'filters={ "status": [ "running" ], "label": [ "component=${{ inputs.docker_component }}", "environment=${{ inputs.deploy_environment }}" ] }' \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq --raw-output '[.[].Id] | ["ids=", join(" ")] | add' >> $GITHUB_OUTPUT
+            - name: Stop containers
+              run: |
+                  for containerId in ${{ steps.containers.outputs.ids }}
+                  do
+                  curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/containers/$containerId/stop" \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
+                  done
+            - name: Create container
+              id: new_container
+              run: |
+                  name="${{ inputs.docker_component }}-${{ inputs.deploy_environment }}-$(date +'%Y-%m-%d-%H-%M-%S')"
+                  echo "name=$name" >> $GITHUB_OUTPUT
+
+                  IFS=','
+                  read -ra string_array <<< "${{ inputs.volumes }}"
+
+                  binds="["
+                  for volume in "${string_array[@]}"; do
+                    binds+="\"$volume\","
+                  done
+                  binds="${binds%,}"
+                  binds+="]"
+
+                  cat <<REQUEST > request.json
+                  {
+                    "Image": "${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}",
+                    "Labels": {
+                      "environment": "${{ inputs.deploy_environment }}",
+                      "component": "${{ inputs.docker_component }}"
+                    },
+                    "ExposedPorts": {
+                     "${{ inputs.exposed_ports }}/tcp": {}
+                    },
+                    "HostConfig": {
+                       "NetworkMode": "bridge",
+                       "Binds": $binds,
+                      "PortBindings": {
+                        "${{ inputs.port_bindings }}/tcp": [
+                          {
+                            "HostPort": "${{ inputs.deploy_port }}"
+                          }
+                         ]
+                       },
+                      "RestartPolicy": {
+                      "Name": "unless-stopped"
+                      }
+                    }
+                  }
+                  REQUEST
+
+                  curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/containers/create?name=$name" \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' \
+                       --header 'Content-Type: application/json' \
+                       --data '@request.json' \
+                       --output new_container.json
+
+                  id=$(cat new_container.json | jq --raw-output '.Id')
+                  cat new_container.json
+                  echo "volumes are $binds"
+
+                  if [ "$id" == "null" ]
+                  then
+                    echo "# :red_circle: Deployment" >> $GITHUB_STEP_SUMMARY
+                    echo "" >> $GITHUB_STEP_SUMMARY
+                    cat new_container.json >> $GITHUB_STEP_SUMMARY
+                    
+                    exit 1
+                  fi
+
+                  echo "id=$id" >> $GITHUB_OUTPUT
+            - name: Start new container
+              run: |
+                  curl --insecure --request POST '${{ secrets.PORTAINER_URL }}/containers/${{ steps.new_container.outputs.id }}/start' \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
+            - name: Delete containers
+              run: |
+                  for containerId in ${{ steps.containers.outputs.ids }}
+                  do
+                    curl --insecure --request DELETE "${{ secrets.PORTAINER_URL }}/containers/$containerId" \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
+                  done
+
+            - name: Summary
+              run: |
+                  echo "# :green_circle: Deployment" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "| Container ID                          | Container name                          | Status   |" >> $GITHUB_STEP_SUMMARY
+                  echo "| ------------------------------------- | --------------------------------------- |:--------:|" >> $GITHUB_STEP_SUMMARY
+                  echo "| ${{ steps.new_container.outputs.id }} | ${{ steps.new_container.outputs.name }} | :rocket: |" >> $GITHUB_STEP_SUMMARY
+
+                  for containerId in ${{ steps.containers.outputs.ids }}
+                  do
+                    echo "| $containerId | | :boom: |" >> $GITHUB_STEP_SUMMARY
+                  done
