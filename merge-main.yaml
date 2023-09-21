@@ -1,0 +1,27 @@
+name: Create Tag on Feature Merge to Main
+
+on:
+    push:
+        branches:
+            - main
+
+jobs:
+    create-tag:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+                  ref: main
+            - name: Check Commit Message and Create Tag
+              id: create_tag
+              run: |
+                  commit_message=$(git log --format=%B -n 1 ${{ github.sha }})
+                  if [[ $commit_message == feat* ]]; then
+                    git fetch --tags
+                    latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+                    tag_number="${latest_tag//v/}"
+                    new_tag="v$((tag_number + 1))"
+                    git tag "$new_tag"
+                    git push origin "$new_tag"
