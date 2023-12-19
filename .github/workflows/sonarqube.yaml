@@ -34,3 +34,5 @@ jobs:
         with:
           args: >
             -Dsonar.projectKey=${{ github.event.repository.name }}
+            -Dsonar.dependencyCheck.jsonReportPath=${{ github.workspace }}/dependency-check-report.json
+            -Dsonar.dependencyCheck.htmlReportPath=${{ github.workspace }}/dependency-check-report.html
