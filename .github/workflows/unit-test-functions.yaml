@@ -7,7 +7,11 @@ on:
         required: true
       STRIPE_TEST_TOKEN:
         required: true
-
+    inputs:
+      run_collections_tests:
+        type: boolean
+        default: true
+        
 concurrency:
   group: unit-test-functions-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -98,3 +102,32 @@ jobs:
         run: npm --prefix functions ci --cache ./.npm --prefer-offline
       - name: Tests services
         run: npm --prefix functions run test:emulator:services
+  tests-collections:
+    if: ${{ inputs.run_collections_tests }}
+    name: Tests collections
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NPM_PACKAGE_ACCESS: ${{ secrets.npm-package-access }}
+      STRIPE_TEST_TOKEN: ${{ secrets.stripe-token }}
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@master
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 18
+      - name: Cache node modules
+        id: cache-npm
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ./.npm
+          key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            build-${{ env.cache-name }}-
+            build-
+      - name: Install dependencies
+        run: npm --prefix functions ci --cache ./.npm --prefer-offline --silent
+      - name: Tests collections
+        run: npm --prefix functions run test:emulator:collections

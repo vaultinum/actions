@@ -97,7 +97,7 @@ jobs:
     name: Tests
     if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
     needs: [dependencies]
-    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v2
+    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@feat/run-collections-test
     secrets:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
