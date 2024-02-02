@@ -28,6 +28,8 @@ on:
             exposed_ports:
                 required: true
                 type: number
+            env_vars:
+                type: string
             tag:
                 type: string
                 default: "latest"
@@ -93,6 +95,7 @@ jobs:
                   cat <<REQUEST > request.json
                   {
                     "Image": "${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}",
+                    "Env": "${{ inputs.env_vars }}",
                     "Labels": {
                       "environment": "${{ inputs.deploy_environment }}",
                       "component": "${{ inputs.docker_component }}"
