@@ -41,7 +41,7 @@ on:
             GH_TOKEN:
                 required: true
 concurrency:
-    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}
     cancel-in-progress: true
 
 jobs:
@@ -132,7 +132,7 @@ jobs:
                     echo "# :red_circle: Deployment" >> $GITHUB_STEP_SUMMARY
                     echo "" >> $GITHUB_STEP_SUMMARY
                     cat new_container.json >> $GITHUB_STEP_SUMMARY
-                    
+
                     exit 1
                   fi
 
