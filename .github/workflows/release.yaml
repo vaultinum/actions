@@ -18,6 +18,12 @@ on:
       publish_package:
         default: true
         type: boolean
+      runs-on:
+        default: ubuntu-latest
+        type: string
+      timeout-minutes:
+        default: 20
+        type: number
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -36,8 +42,8 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: ${{ inputs.timeout-minutes }}
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
