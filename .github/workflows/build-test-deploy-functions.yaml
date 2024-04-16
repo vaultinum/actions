@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v3
       - uses: actions/setup-node@v1
         with:
-          node-version: 16
+          node-version: 20
       - name: Check changed on functions
         id: changed-files-specific
         uses: tj-actions/changed-files@v35.7.8
@@ -71,9 +71,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: 20
       - name: Check changed on functions
         id: changed-files-specific
         uses: tj-actions/changed-files@v35.7.8
