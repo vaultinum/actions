@@ -51,7 +51,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: latest
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
         uses: vaultinum/actions/ci@v2
