@@ -81,7 +81,7 @@ jobs:
           files: functions/**
       - name: Install dependencies
         if: steps.changed-files-specific.outputs.any_changed == 'true'
-        run: npm --prefix functions ci
+        run: npm --prefix functions ci --prefer-offline
       - name: ESLint
         if: steps.changed-files-specific.outputs.any_changed == 'true'
         run: npm --prefix functions run eslint
