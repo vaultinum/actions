@@ -54,7 +54,7 @@ jobs:
           node-version: latest
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v2
+        uses: vaultinum/actions/ci@v8
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
@@ -89,8 +89,16 @@ jobs:
             npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
           edit-mode: replace
   sonarqube:
+    if: ${{ inputs.run_tests != true }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+  sonarqube-with-coverage:
+    if: ${{ inputs.run_tests == true }}
+    needs: publish-snapshot
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets: inherit
+    with:
+      run_tests: ${{ inputs.run_tests }}
   labeler:
     uses: ./.github/workflows/labeler.yaml
     secrets: inherit
