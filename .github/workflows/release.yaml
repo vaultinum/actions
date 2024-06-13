@@ -24,6 +24,9 @@ on:
       timeout-minutes:
         default: 20
         type: number
+      brand:
+        type: string
+        description: Brand to use for the package
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -37,7 +40,7 @@ on:
         required: false
 
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
 
 jobs:
@@ -62,27 +65,35 @@ jobs:
           node-version: latest
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v8
+        uses: vaultinum/actions/ci@v9
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
+          brand: ${{ inputs.brand }}
       - name: Generate changelog
         run: npm run release
       - name: Commit and push tag
+        if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
         run: git push --follow-tags origin main
+      - name: Edit version
+        if:  ${{ inputs.brand != '' }}
+        run: |
+          BRAND="${{ inputs.brand }}"
+          sed -E -i "s/\"version\": \"([0-9]+\.[0-9]+\.[0-9]+)\"/\"version\": \"\1-$BRAND\"/g" package.json
       - name: Publish
         if: ${{ inputs.publish_package == true }}
         run: npm publish
   sonarqube:
-    if: ${{ inputs.run_tests != true }}
+    if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
   sonarqube-with-coverage:
-    if: ${{ inputs.run_tests == true }}
+    if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: release
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
     with:
       run_tests: ${{ inputs.run_tests }}
+      brand: ${{ inputs.brand }}

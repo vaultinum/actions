@@ -10,6 +10,9 @@ on:
       run_tests:
         default: false
         type: boolean
+      brand:
+        type: string
+        description: Brand to use for the package
     secrets:
       SONAR_TOKEN:
         required: true
@@ -33,7 +36,7 @@ jobs:
         if: ${{ inputs.run_tests == true }}
         uses: actions/download-artifact@v4
         with:
-          name: code-coverage-report
+          name: code-coverage-report-${{ inputs.brand }}
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@master
         env:
