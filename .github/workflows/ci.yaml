@@ -44,15 +44,23 @@ jobs:
         with:
           node-version: latest
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v2
+        uses: vaultinum/actions/ci@v8
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
   sonarqube:
+    if: ${{ inputs.run_tests != true }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+  sonarqube-with-coverage:
+    if: ${{ inputs.run_tests == true }}
+    needs: ci
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets: inherit
+    with:
+      run_tests: ${{ inputs.run_tests }}
   labeler:
     uses: ./.github/workflows/labeler.yaml
     secrets: inherit
