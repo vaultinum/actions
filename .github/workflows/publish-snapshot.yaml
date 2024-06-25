@@ -21,6 +21,12 @@ on:
       timeout-minutes:
         default: 20
         type: number
+      brand:
+        type: string
+        description: Brand to use for the package
+      snapshot-suffix:
+        type: string
+        description: Snapshot suffix to use for the package
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -34,11 +40,21 @@ on:
         required: false
 
 concurrency:
-  group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
 
 jobs:
+  generate-snapshot-suffix:
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      snapshot-suffix: ${{ steps.generate-suffix.outputs.snapshot-suffix || inputs.snapshot-suffix }}
+    steps:
+      - name: Generate suffix
+        if:  ${{ inputs.snapshot-suffix == '' }}
+        id: generate-suffix
+        uses: vaultinum/actions/generate-suffix@v9
   publish-snapshot:
+    needs: generate-snapshot-suffix
     runs-on: ${{ inputs.runs-on }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
     env:
@@ -54,18 +70,23 @@ jobs:
           node-version: latest
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v8
+        uses: vaultinum/actions/ci@v9
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
-      - name: Get current date
-        run: echo "snapshot_date=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_ENV
+          brand: ${{ inputs.brand }}
       - name: Update snapshot version
+        if: ${{ inputs.brand == '' }}
         run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
         env:
-          PRE_ID: SNAPSHOT-${{ env.snapshot_date }}
+          PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}
+      - name: Update snapshot version for brand
+        if: ${{ inputs.brand != '' }}
+        run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
+        env:
+          PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}-${{ inputs.brand }}
       - name: Publish snapshot
         run: npm publish --tag=snapshot
       - name: Find package info comment
@@ -89,16 +110,18 @@ jobs:
             npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
           edit-mode: replace
   sonarqube:
-    if: ${{ inputs.run_tests != true }}
+    if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
   sonarqube-with-coverage:
-    if: ${{ inputs.run_tests == true }}
+    if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: publish-snapshot
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
     with:
       run_tests: ${{ inputs.run_tests }}
+      brand: ${{ inputs.brand }}
   labeler:
+    if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
     uses: ./.github/workflows/labeler.yaml
     secrets: inherit

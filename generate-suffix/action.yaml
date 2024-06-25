@@ -1,0 +1,16 @@
+name: Snapshot Suffix
+description: Generate Snapshot Suffix
+author: Vaultinum
+
+outputs:
+  snapshot-suffix:
+    description: "Snapshot suffix"
+    value: ${{ steps.get-current-date.outputs.snapshot-suffix }}
+
+runs:
+  using: composite
+  steps:
+    - name: Get current date
+      id: get-current-date
+      shell: bash
+      run: echo "snapshot-suffix=$(date +'%Y%m%d%H%M%S')" >> $GITHUB_OUTPUT

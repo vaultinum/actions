@@ -15,6 +15,9 @@ on:
       run_tests:
         default: false
         type: boolean
+      brand:
+        type: string
+        description: Brand to use for the package
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -26,7 +29,7 @@ on:
         required: true
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
 
 jobs:
@@ -44,12 +47,13 @@ jobs:
         with:
           node-version: latest
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v8
+        uses: vaultinum/actions/ci@v9
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
+          brand: ${{ inputs.brand }}
   sonarqube:
     if: ${{ inputs.run_tests != true }}
     uses: ./.github/workflows/sonarqube.yaml
