@@ -47,7 +47,7 @@ jobs:
         with:
           node-version: latest
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v9
+        uses: vaultinum/actions/ci@v10
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
