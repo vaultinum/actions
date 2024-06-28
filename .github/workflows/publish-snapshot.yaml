@@ -52,7 +52,7 @@ jobs:
       - name: Generate suffix
         if:  ${{ inputs.snapshot-suffix == '' }}
         id: generate-suffix
-        uses: vaultinum/actions/generate-suffix@v9
+        uses: vaultinum/actions/generate-suffix@v10
   publish-snapshot:
     needs: generate-snapshot-suffix
     runs-on: ${{ inputs.runs-on }}
@@ -70,7 +70,7 @@ jobs:
           node-version: latest
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v9
+        uses: vaultinum/actions/ci@v10
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
@@ -96,7 +96,7 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: github-actions[bot]
           body-includes: |
-            ```
+            ```${{ inputs.brand }}
       - name: Get package info
         id: package
         uses: codex-team/action-nodejs-package-info@v1.1
@@ -106,7 +106,7 @@ jobs:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ```
+            ```${{ inputs.brand }}
             npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
           edit-mode: replace
   sonarqube:
