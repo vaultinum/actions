@@ -2,6 +2,10 @@ name: Unit test
 
 on:
   workflow_call:
+    inputs:
+      vaultinum_owner_account_id:
+        required: false
+        type: string
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -20,6 +24,7 @@ jobs:
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
+      VAULTINUM_OWNER_ACCOUNT_ID: ${{ inputs.vaultinum_owner_account_id }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v3
