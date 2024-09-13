@@ -100,7 +100,7 @@ jobs:
     name: Tests
     if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
     needs: [dependencies]
-    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v12
+    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v13
     with:
       vaultinum_owner_account_id: ${{ inputs.vaultinum_owner_account_id }}
     secrets:
