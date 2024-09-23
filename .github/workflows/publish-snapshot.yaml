@@ -27,6 +27,10 @@ on:
       snapshot-suffix:
         type: string
         description: Snapshot suffix to use for the package
+    outputs:
+      snapshot-full-version:
+        description: The full version of the snapshot
+        value: ${{ jobs.publish-snapshot.outputs.snapshot-full-version }}
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -56,6 +60,8 @@ jobs:
   publish-snapshot:
     needs: generate-snapshot-suffix
     runs-on: ${{ inputs.runs-on }}
+    outputs:
+      snapshot-full-version: ${{ steps.package.outputs.version }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
