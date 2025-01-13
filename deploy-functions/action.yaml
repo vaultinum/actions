@@ -3,7 +3,7 @@ author: Vaultinum
 inputs:
   FUNCTIONS_ENVIRONMENT:
     type: string
-  FIREBASE_TOKEN:
+  GCP_SA_KEY:
     type: string
   NPM_PACKAGE_ACCESS:
     type: string
@@ -27,8 +27,8 @@ runs:
       shell: bash
       run: npm --prefix functions ci
     - name: Deploy functions to Firebase
-      uses: w9jds/firebase-action@v13.7.3
+      uses: w9jds/firebase-action@v13.29.1
       with:
         args: deploy -P ${{ inputs.FUNCTIONS_ENVIRONMENT }} --only functions
       env:
-        FIREBASE_TOKEN: ${{ inputs.FIREBASE_TOKEN }}
+        GCP_SA_KEY : ${{ inputs.GCP_SA_KEY }}

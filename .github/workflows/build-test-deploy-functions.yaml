@@ -19,7 +19,7 @@ on:
         required: true
       GH_TOKEN:
         required: true
-      FIREBASE_TOKEN:
+      GCP_SA_KEY:
         required: true
       STRIPE_TEST_TOKEN:
         required: false
@@ -100,7 +100,7 @@ jobs:
     name: Tests
     if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
     needs: [dependencies]
-    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v13
+    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v14
     with:
       vaultinum_owner_account_id: ${{ inputs.vaultinum_owner_account_id }}
     secrets:
@@ -113,10 +113,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy
-        uses: vaultinum/actions/deploy-functions@v11
+        uses: vaultinum/actions/deploy-functions@v14
         with:
           NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
           FUNCTIONS_ENVIRONMENT: ${{ inputs.functions_environment }}
   deploy-without-tests:
     name: Deploy functions
@@ -125,8 +125,8 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy
-        uses: vaultinum/actions/deploy-functions@v11
+        uses: vaultinum/actions/deploy-functions@v14
         with:
           NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
           FUNCTIONS_ENVIRONMENT: ${{ inputs.functions_environment }}
