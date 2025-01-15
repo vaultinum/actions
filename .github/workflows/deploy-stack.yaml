@@ -1,0 +1,129 @@
+name: Deploy stack
+
+on:
+    workflow_call:
+        inputs:
+            registry:
+                required: true
+                type: string
+                default: "ghcr.io"
+            image_name:
+                required: true
+                type: string
+            deploy_environment:
+                required: true
+                type: string
+            deploy_port:
+                required: true
+                type: number
+            tag:
+                type: string
+                default: "latest"
+            config_name:
+                type: string
+                default: ""
+            stack_name:
+                required: true
+                type: string
+        secrets:
+            PORTAINER_URL:
+                required: true
+            PORTAINER_API_KEY:
+                required: true
+
+concurrency:
+    group: deploy-stack-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}
+    cancel-in-progress: true
+
+jobs:
+    deploy-stack:
+        name: Deploy stack
+        runs-on: self-hosted
+        timeout-minutes: 15
+        steps:
+            - name: Deploy to Docker Swarm using Portainer API
+              run: |
+                  echo "Checking for existing stack in Portainer..."
+
+                  # Extract the base URL and endpoint ID from the PORTAINER_URL secret
+                  BASE_URL=$(echo "${{ secrets.PORTAINER_URL }}" | cut -d'/' -f1-3)
+                  ENDPOINT_ID=$(echo "${{ secrets.PORTAINER_URL }}" | sed -E 's#.*/([0-9]+)/.*#\1#')
+
+                  EXISTING_STACKS=$(curl --insecure --request GET "$BASE_URL/api/stacks" \
+                      --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}")
+
+                  ENDPOINT_INFO=$(curl --insecure --request GET "$BASE_URL/api/endpoints/$ENDPOINT_ID" \
+                      --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}")
+
+                  STACK_INFO=$(echo "$EXISTING_STACKS" | jq -r '.[] | select(.Name=="${{ inputs.stack_name }}")')
+                  STACK_ID=$(echo "$STACK_INFO" | jq -r '.Id')
+                  SWARM_ID=$(echo $ENDPOINT_INFO | jq -r '.Snapshots[].DockerSnapshotRaw.Info.Swarm.Cluster.ID')
+
+                  # Replace the image name in the docker-compose.yml file and convert the file content to a valid JSON string
+                  STACK_FILE_CONTENT=$(cat docker-compose.yml | sed "s|image:.*|image: ${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}|g" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+
+                  DEPLOY_ENVIRONMENT=$(echo "${{ inputs.deploy_environment }}" | tr '[:lower:]' '[:upper:]')
+
+                  # Extract the list of secrets from the docker-compose.yml file
+                  SECRETS_LIST=$(grep -oP '^\s*-\s+\K[A-Za-z0-9_]+(?:_[A-Za-z0-9]+)*' docker-compose.yml | grep -vE 'source|ports|volumes|configs')
+
+                  ENV_VARS=""
+
+                  # Populate the environment variables with the secret values
+                  IFS=$'\n'
+                  for SECRET in $SECRETS_LIST; do
+                      ENV_VARS="${ENV_VARS}{ \"name\": \"$SECRET\", \"value\": \"${SECRET}_${DEPLOY_ENVIRONMENT}\" },"
+                  done
+
+                  # Add the PORT and CONFIG_NAME environment variables
+                  ENV_VARS="${ENV_VARS}{
+                      \"name\": \"PORT\",
+                      \"value\": \"${{ inputs.deploy_port }}\"
+                  }, {
+                      \"name\": \"CONFIG_NAME\",
+                      \"value\": \"${{ inputs.config_name }}\"
+                  }"
+
+
+                  # Remove the trailing comma from the environment variables list to make it a valid JSON array
+                  if [[ $ENV_VARS == *, ]]; then
+                      ENV_VARS="${ENV_VARS::-1}"
+                  fi
+
+                  if [ -z "$STACK_ID" ]; then
+                      echo "Stack not found for name ${{ inputs.stack_name }}. Creating a new one."
+
+                      cat <<EOF > request.json
+                  {
+                    "Name": "${{ inputs.stack_name }}",
+                    "StackFileContent": "$STACK_FILE_CONTENT",
+                    "SwarmID": "$SWARM_ID",
+                    "Env": [$ENV_VARS]
+                  }
+                  EOF
+
+                      curl --insecure --request POST "$BASE_URL/api/stacks/create/swarm/string?endpointId=$ENDPOINT_ID" \
+                          --header "Content-Type: application/json" \
+                          --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
+                          --data "@request.json" \
+                          --output response.json
+                  else
+                      echo "Stack found with ID $STACK_ID. Updating the stack."
+
+                      cat <<EOF > request.json
+                  {
+                    "StackFileContent": "$STACK_FILE_CONTENT",
+                    "Env": [$ENV_VARS]
+                  }
+                  EOF
+
+                      curl --insecure --request PUT "$BASE_URL/api/stacks/$STACK_ID?endpointId=$ENDPOINT_ID" \
+                          --header "Content-Type: application/json" \
+                          --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
+                          --data "@request.json" \
+                          --output response.json
+
+                      echo "Stack updated successfully."
+                  fi
+
+                  cat response.json
