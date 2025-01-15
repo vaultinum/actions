@@ -83,7 +83,7 @@ jobs:
                   IFS=','
                   read -ra string_array <<< "${{ inputs.volumes }}"
 
-                  binds="["
+                  binds="[" 
                   for volume in "${string_array[@]}"; do
                     binds+="\"$volume\","
                   done
@@ -98,41 +98,40 @@ jobs:
                       "component": "${{ inputs.docker_component }}"
                     },
                     "ExposedPorts": {
-                     "${{ inputs.exposed_ports }}/tcp": {}
+                      "${{ inputs.exposed_ports }}/tcp": {}
                     },
                     "HostConfig": {
-                       "NetworkMode": "bridge",
-                       "Binds": $binds,
+                      "NetworkMode": "bridge",
+                      "Binds": $binds,
                       "PortBindings": {
                         "${{ inputs.port_bindings }}/tcp": [
                           {
                             "HostPort": "${{ inputs.deploy_port }}"
                           }
-                         ]
-                       },
+                        ]
+                      },
                       "RestartPolicy": {
-                      "Name": "unless-stopped"
+                        "Name": "unless-stopped"
                       }
-                    }
+                    },
+                    "Secrets": $secrets
                   }
                   REQUEST
 
                   curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/containers/create?name=$name" \
-                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' \
-                       --header 'Content-Type: application/json' \
-                       --data '@request.json' \
-                       --output new_container.json
+                      --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' \
+                      --header 'Content-Type: application/json' \
+                      --data '@request.json' \
+                      --output new_container.json
 
                   id=$(cat new_container.json | jq --raw-output '.Id')
-                  cat new_container.json
+                  echo "Created container ID: $id"
                   echo "volumes are $binds"
 
-                  if [ "$id" == "null" ]
-                  then
-                    echo "# :red_circle: Deployment" >> $GITHUB_STEP_SUMMARY
+                  if [ "$id" == "null" ]; then
+                    echo "# :red_circle: Deployment failed" >> $GITHUB_STEP_SUMMARY
                     echo "" >> $GITHUB_STEP_SUMMARY
                     cat new_container.json >> $GITHUB_STEP_SUMMARY
-
                     exit 1
                   fi
 

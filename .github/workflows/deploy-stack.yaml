@@ -1,0 +1,99 @@
+name: Deploy portainer
+
+on:
+    workflow_call:
+        inputs:
+            registry:
+                required: true
+                type: string
+                default: "ghcr.io"
+            image_name:
+                required: true
+                type: string
+            docker_component:
+                required: true
+                type: string
+            deploy_environment:
+                required: true
+                type: string
+            deploy_port:
+                required: true
+                type: number
+            volumes:
+                required: true
+                type: string
+            port_bindings:
+                required: true
+                type: string
+            exposed_ports:
+                required: true
+                type: string
+            tag:
+                type: string
+                default: "latest"
+        secrets:
+            PORTAINER_URL:
+                required: true
+            PORTAINER_API_KEY:
+                required: true
+            PORTAINER_REGISTRY_AUTH:
+                required: true
+            GH_TOKEN:
+                required: true
+
+concurrency:
+    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}
+    cancel-in-progress: true
+
+jobs:
+    deploy-docker:
+        name: Deploy docker image
+        runs-on: self-hosted
+        timeout-minutes: 15
+        steps:
+            - name: Login to Github docker registry
+              uses: docker/login-action@v1
+              with:
+                  registry: ${{ inputs.registry }}
+                  username: ${{ github.actor }}
+                  password: ${{ secrets.GH_TOKEN }}
+
+            - name: Deploy to Docker Swarm using docker-compose.yml
+              run: |
+                  echo "Deploying stack to Docker Swarm using Portainer API"
+
+                  # Préparer les données dans un fichier JSON
+                  STACK_FILE_CONTENT=$(cat docker-compose.yml)
+
+                  cat <<EOF > request.json
+                  {
+                    "Name": "kys-backend-test",
+                    "SwarmID": "1",
+                    "StackFileContent": "$STACK_FILE_CONTENT",
+                    "Env": [
+                      {
+                        "name": "SHOWCASE_HOST",
+                        "value": "${{ secrets.SHOWCASE_HOST }}"
+                      },
+                      {
+                        "name": "VAULTINUM_OWNER_ACCOUNT_ID",
+                        "value": "${{ secrets.VAULTINUM_OWNER_ACCOUNT_ID }}"
+                      },
+                      {
+                        "name": "INSIGHTS_SOURCE",
+                        "value": "${{ secrets.INSIGHTS_SOURCE }}"
+                      }
+                    ]
+                  }
+                  EOF
+
+                  curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/api/stacks?type=2&method=string&endpointId=1" \
+                    --header "Content-Type: application/json" \
+                    --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
+                    --header "X-Registry-Auth: ${{ secrets.PORTAINER_REGISTRY_AUTH }}" \
+                    --data "@request.json" \
+                    --output response.json
+
+                  id=$(cat response.json | jq --raw-output '.Id')
+                  echo "Created container ID: $id"
+                  echo "Deployment request sent to Portainer API."
