@@ -65,7 +65,7 @@ jobs:
           node-version: 22.4.1
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v10
+        uses: vaultinum/actions/ci@v14
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
