@@ -25,6 +25,9 @@ on:
             stack_name:
                 required: true
                 type: string
+            gcp_project:
+                required: true
+                type: string
         secrets:
             PORTAINER_URL:
                 required: true
@@ -96,6 +99,9 @@ jobs:
                   }, {
                       \"name\": \"DEPLOY_ENVIRONMENT\",
                       \"value\": \"${{ inputs.deploy_environment }}\"
+                  }, {
+                      \"name\": \"GCP_PROJECT\",
+                      \"value\": \"${{ inputs.gcp_project }}\"
                   }"
 
 
