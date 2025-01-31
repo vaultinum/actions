@@ -27,6 +27,10 @@ on:
       brand:
         type: string
         description: Brand to use for the package
+    outputs:
+      version:
+        description: Version of the package
+        value: ${{ jobs.release.outputs.version }}
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -46,6 +50,8 @@ concurrency:
 jobs:
   release:
     runs-on: ${{ inputs.runs-on }}
+    outputs:
+      version: ${{ steps.package.outputs.version }}
     timeout-minutes: ${{ inputs.timeout-minutes }}
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
@@ -85,6 +91,9 @@ jobs:
       - name: Publish
         if: ${{ inputs.publish_package == true }}
         run: npm publish
+      - name: Get package info
+        id: package
+        uses: codex-team/action-nodejs-package-info@v1.1
   sonarqube:
     if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     uses: ./.github/workflows/sonarqube.yaml
