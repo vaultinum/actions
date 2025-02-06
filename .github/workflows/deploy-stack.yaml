@@ -41,6 +41,12 @@ jobs:
         runs-on: self-hosted
         timeout-minutes: 15
         steps:
+            - name: List containers
+              id: containers
+              run: |
+                  curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
+                       --data-urlencode 'filters={ "status": [ "running" ], "label": [ "com.docker.stack.namespace=${{ inputs.stack_name }}" ] }' \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq --raw-output '[.[].Id] | ["ids=", join(" ")] | add' >> $GITHUB_OUTPUT
             - name: Deploy to Docker Swarm using Portainer API
               run: |
                   echo "Checking for existing stack in Portainer..."
@@ -127,3 +133,31 @@ jobs:
                   fi
 
                   cat response.json
+            - name: Wait for new stack to be healthy
+              run: |
+                  echo "Waiting for new stack to be healthy..."
+
+                  sleep 10
+
+                  HEALTHY_COUNT=0
+                  while [ $HEALTHY_COUNT -eq 0 ]; do
+                      HEALTHY_COUNT=$(curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
+                          --data-urlencode 'filters={ "status": [ "running" ], "label": [ "com.docker.stack.namespace=${{ inputs.stack_name }}" ] }' \
+                          --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq '[.[] | select(.State=="running")] | length')
+
+                      echo "Healthy containers count: $HEALTHY_COUNT"
+
+                      if [ $HEALTHY_COUNT -gt 0 ]; then
+                          echo "New stack is healthy!"
+                          break
+                      fi
+
+                      sleep 10
+                  done
+            - name: Delete containers
+              run: |
+                  for containerId in ${{ steps.containers.outputs.ids }}
+                  do
+                    curl --insecure --request DELETE "${{ secrets.PORTAINER_URL }}/containers/$containerId" \
+                       --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
+                  done
