@@ -35,6 +35,8 @@ concurrency:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    outputs:
+      message: ${{ steps.commit-message.outputs.message }}
     timeout-minutes: 20
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
@@ -42,6 +44,8 @@ jobs:
     steps:
       - name: Checkout Current Repository
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -54,12 +58,15 @@ jobs:
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
+      - name: Get Last Commit Message
+        id: commit-message
+        run: echo "message=$(git log -1 --pretty=%B HEAD)" >> $GITHUB_OUTPUT
   sonarqube:
     if: ${{ inputs.run_tests != true }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
   sonarqube-with-coverage:
-    if: ${{ inputs.run_tests == true }}
+    if: ${{ inputs.run_tests == true && !contains(needs.ci.outputs.message, '[skip builds]') }}
     needs: ci
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
