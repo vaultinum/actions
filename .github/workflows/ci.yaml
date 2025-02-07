@@ -63,6 +63,7 @@ jobs:
         run: echo "message=$(git log -1 --pretty=%B HEAD)" >> $GITHUB_OUTPUT
   sonarqube:
     if: ${{ inputs.run_tests != true && !contains(needs.ci.outputs.message, '[skip builds]')  }}
+    needs: ci
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
   sonarqube-with-coverage:
