@@ -121,7 +121,7 @@ jobs:
     secrets: inherit
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
-    needs: publish-snapshot
+    needs: publish-snapshot # if run_tests == true, wait for vaultinum/actions/ci to upload code coverage results needed by sonarqube.yaml
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
     with:
