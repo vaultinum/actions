@@ -133,26 +133,24 @@ jobs:
                   fi
 
                   cat response.json
-            - name: Wait for new stack to be healthy
+            - name: Wait for new container to be stopped
               run: |
-                  echo "Waiting for new stack to be healthy..."
-
                   sleep 10
 
-                  HEALTHY_COUNT=0
-                  while [ $HEALTHY_COUNT -eq 0 ]; do
-                      HEALTHY_COUNT=$(curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
-                          --data-urlencode 'filters={ "status": [ "running" ], "label": [ "com.docker.stack.namespace=${{ inputs.stack_name }}" ] }' \
-                          --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq '[.[] | select(.State=="running")] | length')
+                  STOPPED_COUNT=0
+                  while [ $STOPPED_COUNT -eq 0 ]; do
+                      STOPPED_COUNT=$(curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
+                          --data-urlencode 'filters={ "status": [ "exited" ], "label": [ "com.docker.stack.namespace=${{ inputs.stack_name }}" ] }' \
+                          --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq '[.[]] | length')
 
-                      echo "Healthy containers count: $HEALTHY_COUNT"
+                      echo "Stopped containers count: $STOPPED_COUNT"
 
-                      if [ $HEALTHY_COUNT -gt 0 ]; then
-                          echo "New stack is healthy!"
+                      if [ $STOPPED_COUNT -gt 0 ]; then
+                          echo "Container stopped!"
                           break
                       fi
 
-                      sleep 10
+                      sleep 5
                   done
             - name: Delete containers
               run: |
