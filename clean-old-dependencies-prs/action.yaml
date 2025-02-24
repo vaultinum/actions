@@ -1,0 +1,49 @@
+name: Clean old dependencies PRs
+author: Vaultinum
+inputs:
+  package_name:
+    type: string
+  GITHUB_TOKEN:
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Extract ${{ inputs.package_name }} version from package.json
+      shell: bash
+      run: |
+        REF_SDK_VERSION=$(jq -r '.dependencies["'${{ inputs.package_name }}'"]' package.json | grep -oP '\d+\.\d+\.\d+')
+        echo "${{ inputs.package_name }} version: $REF_SDK_VERSION"
+        echo "REF_SDK_VERSION=$REF_SDK_VERSION" >> $GITHUB_ENV
+
+    - name: Close old dependencies PRs
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        gh pr list --repo ${{ github.repository }} --base ${{ github.ref_name }} --label dependencies --json number,files,commits | jq -c '.[]' | while read -r pr; do
+          FILES=$(echo "$pr" | jq -r '.files[].path')
+          for FILE in $FILES; do
+            if [[ "$FILE" != "package.json" && "$FILE" != "package-lock.json" ]]; then
+              continue
+            fi
+          done
+
+          LAST_COMMIT_MESSAGE=$(echo "$pr" | jq -r '.commits | last | .messageHeadline')
+          if [[ "$LAST_COMMIT_MESSAGE" != *"bump vaultinum-sdk to version"* ]]; then
+              continue
+          fi
+
+          PR_NUMBER=$(echo "$pr" | jq -r '.number')
+          PR_SDK_VERSION=$(echo $LAST_COMMIT_MESSAGE | grep -oP '\d+\.\d+\.\d+' | head -n 1)
+
+          if [[ $(echo -e "$REF_SDK_VERSION\n$PR_SDK_VERSION" | sort -V | head -n 1) == "$PR_SDK_VERSION" ]]; then
+            echo "🗑️ @vaultinum/vaultinum-sdk version in PR is older or equal than the one on ${{ github.ref_name }} ($PR_SDK_VERSION <= $REF_SDK_VERSION). Close dependency PR #$PR_NUMBER."
+            gh pr close $PR_NUMBER --repo ${{ github.repository }} --delete-branch --comment "This PR has been automatically closed because it only consists of an obsolete upgrade of the ${{ inputs.package_name }} package." || true
+          else
+            echo "🆕 @vaultinum/vaultinum-sdk version in PR is newer than the one on ${{ github.ref_name }} ($PR_SDK_VERSION > $REF_SDK_VERSION). Keep dependency PR #$PR_NUMBER."
+          fi
+        done

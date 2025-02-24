@@ -15,7 +15,18 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+    check-changes:
+        runs-on: ubuntu-latest
+        outputs:
+          changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
+        steps:
+          - id: changes_detected
+            uses: vaultinum/actions/check-changes@v19
+            with:
+                pattern: ^src/|^\.storybook/
     chromatic-deployment:
+        needs: check-changes
+        if: needs.check-changes.outputs.changes_detected == 'true'
         runs-on: ubuntu-latest
         env:
             NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}

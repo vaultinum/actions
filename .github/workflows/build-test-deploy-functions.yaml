@@ -100,7 +100,7 @@ jobs:
     name: Tests
     if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
     needs: [dependencies]
-    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v14
+    uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v19
     with:
       vaultinum_owner_account_id: ${{ inputs.vaultinum_owner_account_id }}
     secrets:
@@ -113,7 +113,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy
-        uses: vaultinum/actions/deploy-functions@v14
+        uses: vaultinum/actions/deploy-functions@v19
         with:
           NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
@@ -125,7 +125,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Deploy
-        uses: vaultinum/actions/deploy-functions@v14
+        uses: vaultinum/actions/deploy-functions@v19
         with:
           NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
           GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}

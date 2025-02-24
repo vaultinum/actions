@@ -24,14 +24,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
+    steps:
+      - id: changes_detected
+        uses: vaultinum/actions/check-changes@v19
+        with:
+          pattern: ^src/|^functions/
   sonarQube:
+    needs: check-changes
+    if: needs.check-changes.outputs.changes_detected == 'true'
     name: SonarQube analysis
     runs-on: ${{ inputs.runner }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - name: Checkout Current Repository
+        uses: actions/checkout@v3
       - name: Download code coverage results
         if: ${{ inputs.run_tests == true }}
         uses: actions/download-artifact@v4
