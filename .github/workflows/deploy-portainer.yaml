@@ -31,6 +31,9 @@ on:
             tag:
                 type: string
                 default: "latest"
+            gcp_project_id:
+                required: true
+                type: string
         secrets:
             PORTAINER_URL:
                 required: true
@@ -112,6 +115,14 @@ jobs:
                        },
                       "RestartPolicy": {
                       "Name": "unless-stopped"
+                      },
+                      "LogConfig": {
+                          "Type": "gcplogs",
+                          "Config": {
+                            "gcp-project": ${{ inputs.gcp_project_id }},
+                            "gcp-log-cmd": "gcloud"
+                          }
+                        }
                       }
                     }
                   }
