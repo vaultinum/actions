@@ -81,13 +81,16 @@ jobs:
                       ENV_VARS="${ENV_VARS}{ \"name\": \"$SECRET\", \"value\": \"${SECRET}_${DEPLOY_ENVIRONMENT}\" },"
                   done
 
-                  # Add the PORT and CONFIG_NAME environment variables
+                  # Add the additional environment variables
                   ENV_VARS="${ENV_VARS}{
                       \"name\": \"PORT\",
                       \"value\": \"${{ inputs.deploy_port }}\"
                   }, {
                       \"name\": \"CONFIG_NAME\",
                       \"value\": \"${{ inputs.config_name }}\"
+                  }, {
+                      \"name\": \"DEPLOY_ENVIRONMENT\",
+                      \"value\": \"${{ inputs.deploy_environment }}\"
                   }"
 
 
