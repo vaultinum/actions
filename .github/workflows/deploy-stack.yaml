@@ -41,6 +41,11 @@ jobs:
         runs-on: self-hosted
         timeout-minutes: 15
         steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+              with:
+                  repository: ${{ github.repository }}
+                  ref: ${{ github.ref }}
             - name: List containers
               id: containers
               run: |
