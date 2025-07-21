@@ -27,6 +27,10 @@ on:
       snapshot-suffix:
         type: string
         description: Snapshot suffix to use for the package
+      working-directory:
+        type: string
+        description: The working directory for the job
+        default: "."
     outputs:
       snapshot-full-version:
         description: The full version of the snapshot
@@ -69,31 +73,35 @@ jobs:
       TEST_KEY: ${{ secrets.TEST_KEY }}
     steps:
       - name: Checkout Current Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22.4.1
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v19
+        uses: vaultinum/actions/ci@v22
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
+          working-directory: ${{ inputs.working-directory }}
       - name: Update snapshot version
         if: ${{ inputs.brand == '' }}
+        working-directory: ${{ inputs.working-directory }}
         run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
         env:
           PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}
       - name: Update snapshot version for brand
         if: ${{ inputs.brand != '' }}
+        working-directory: ${{ inputs.working-directory }}
         run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
         env:
           PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}-${{ inputs.brand }}
       - name: Publish snapshot
+        working-directory: ${{ inputs.working-directory }}
         run: npm publish --tag=snapshot
       - name: Find package info comment
         uses: peter-evans/find-comment@v2
@@ -106,6 +114,8 @@ jobs:
       - name: Get package info
         id: package
         uses: codex-team/action-nodejs-package-info@v1.1
+        with:
+          path: ${{ inputs.working-directory }}
       - name: Create or update package info comment
         uses: peter-evans/create-or-update-comment@v2
         with:
@@ -119,6 +129,8 @@ jobs:
     if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+    with:
+      working-directory: ${{ inputs.working-directory }}
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: publish-snapshot # if run_tests == true, wait for vaultinum/actions/ci to upload code coverage results needed by sonarqube.yaml
@@ -127,6 +139,7 @@ jobs:
     with:
       run_tests: ${{ inputs.run_tests }}
       brand: ${{ inputs.brand }}
+      working-directory: ${{ inputs.working-directory }}
   labeler:
     if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
     uses: ./.github/workflows/labeler.yaml

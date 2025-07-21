@@ -18,6 +18,10 @@ on:
       brand:
         type: string
         description: Brand to use for the package
+      working-directory:
+        type: string
+        description: The working directory for the job
+        default: "."
     secrets:
       NPM_PACKAGE_ACCESS:
         required: true
@@ -58,6 +62,7 @@ jobs:
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
+          working-directory: ${{ inputs.working-directory }}
       - name: Get Last Commit Message
         id: commit-message
         run: echo "message=$(git log -1 --pretty=%B HEAD | tr -d '\n')" >> $GITHUB_OUTPUT
@@ -66,6 +71,8 @@ jobs:
     needs: ci
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+    with:
+      working-directory: ${{ inputs.working-directory }}
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && !contains(needs.ci.outputs.message, '[skip builds]') }}
     needs: ci
@@ -73,6 +80,7 @@ jobs:
     secrets: inherit
     with:
       run_tests: ${{ inputs.run_tests }}
+      working-directory: ${{ inputs.working-directory }}
   labeler:
     uses: ./.github/workflows/labeler.yaml
     secrets: inherit
