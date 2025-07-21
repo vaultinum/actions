@@ -17,6 +17,14 @@ inputs:
   brand:
     type: string
     description: Brand to use for the package
+  working-directory:
+    type: string
+    description: "The working directory for the job"
+    default: "."
+
+defaults:
+  run:
+    working-directory: ${{ inputs.working-directory }}
 
 runs:
   using: composite
@@ -50,5 +58,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: code-coverage-report-${{ inputs.brand }}
-        path: ${{ github.workspace }}/coverage/lcov.info
+        path: ${{ inputs.working-directory }}/coverage/lcov.info
         retention-days: 5
