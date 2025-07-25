@@ -13,6 +13,10 @@ on:
       brand:
         type: string
         description: Brand to use for the package
+      working-directory:
+        type: string
+        description: "The working directory for the job"
+        default: "."
     secrets:
       SONAR_TOKEN:
         required: true
@@ -32,7 +36,7 @@ jobs:
       - id: changes_detected
         uses: vaultinum/actions/check-changes@v19
         with:
-          pattern: ^src/|^functions/
+          pattern: ^${{ inputs.working-directory != '.' && format('{0}/', inputs.working-directory) || '' }}(src/|functions/)
   sonarQube:
     needs: check-changes
     if: needs.check-changes.outputs.changes_detected == 'true'
@@ -53,8 +57,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
         with:
+          projectBaseDir: ${{ inputs.working-directory }}
           args: >
             -Dsonar.projectKey=${{ github.event.repository.name }}
-            -Dsonar.javascript.lcov.reportPaths=./lcov.info
-            -Dsonar.dependencyCheck.jsonReportPath=${{ github.workspace }}/dependency-check-report.json
-            -Dsonar.dependencyCheck.htmlReportPath=${{ github.workspace }}/dependency-check-report.html
+            -Dsonar.javascript.lcov.reportPaths=${{ inputs.working-directory }}/lcov.info
+            -Dsonar.dependencyCheck.jsonReportPath=${{ inputs.working-directory }}/dependency-check-report.json
+            -Dsonar.dependencyCheck.htmlReportPath=${{ inputs.working-directory }}/dependency-check-report.html
