@@ -27,10 +27,6 @@ on:
       brand:
         type: string
         description: Brand to use for the package
-      working-directory:
-        type: string
-        description: "The working directory for the job"
-        default: "."
     outputs:
       version:
         description: Version of the package
@@ -50,10 +46,6 @@ on:
 concurrency:
   group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
-
-defaults:
-  run:
-    working-directory: ${{ inputs.working-directory }}
 
 jobs:
   release:
@@ -86,12 +78,10 @@ jobs:
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
-          working-directory: ${{ inputs.working-directory }}
       - name: Generate changelog
         run: npm run release
       - name: Commit and push tag
         if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
-        working-directory: .
         run: git push --follow-tags origin main
       - name: Edit version
         if:  ${{ inputs.brand != '' }}
@@ -106,16 +96,13 @@ jobs:
         uses: codex-team/action-nodejs-package-info@v1.1
   sonarqube:
     if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
-    uses: sonarqube.yaml
+    uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
-    with:
-      working-directory: ${{ inputs.working-directory }}
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: release
-    uses: sonarqube.yaml
+    uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
     with:
       run_tests: ${{ inputs.run_tests }}
       brand: ${{ inputs.brand }}
-      working-directory: ${{ inputs.working-directory }}

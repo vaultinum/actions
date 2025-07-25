@@ -27,10 +27,6 @@ on:
       snapshot-suffix:
         type: string
         description: Snapshot suffix to use for the package
-      working-directory:
-        type: string
-        description: The working directory for the job
-        default: "."
     outputs:
       snapshot-full-version:
         description: The full version of the snapshot
@@ -50,10 +46,6 @@ on:
 concurrency:
   group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
-
-defaults:
-  run:
-    working-directory: ${{ inputs.working-directory }}
 
 jobs:
   generate-snapshot-suffix:
@@ -91,7 +83,6 @@ jobs:
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
-          working-directory: ${{ inputs.working-directory }}
       - name: Update snapshot version
         if: ${{ inputs.brand == '' }}
         run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
@@ -126,19 +117,16 @@ jobs:
           edit-mode: replace
   sonarqube:
     if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
-    uses: sonarqube.yaml
+    uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
-    with:
-      working-directory: ${{ inputs.working-directory }}
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: publish-snapshot # if run_tests == true, wait for vaultinum/actions/ci to upload code coverage results needed by sonarqube.yaml
-    uses: sonarqube.yaml
+    uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
     with:
       run_tests: ${{ inputs.run_tests }}
       brand: ${{ inputs.brand }}
-      working-directory: ${{ inputs.working-directory }}
   labeler:
     if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
     uses: ./.github/workflows/labeler.yaml
