@@ -27,6 +27,10 @@ on:
       brand:
         type: string
         description: Brand to use for the package
+      working-directory:
+        type: string
+        description: "The working directory for the job"
+        default: "."
     outputs:
       version:
         description: Version of the package
@@ -59,7 +63,7 @@ jobs:
       TEST_KEY: ${{ secrets.TEST_KEY }}
     steps:
       - name: Checkout Current Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: main
@@ -78,26 +82,35 @@ jobs:
           run_build: ${{ inputs.run_build }}
           run_tests: ${{ inputs.run_tests }}
           brand: ${{ inputs.brand }}
+          working-directory: ${{ inputs.working-directory }}
       - name: Generate changelog
+        working-directory: ${{ inputs.working-directory }}
         run: npm run release
       - name: Commit and push tag
         if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
+        working-directory: ${{ inputs.working-directory }}
         run: git push --follow-tags origin main
       - name: Edit version
         if:  ${{ inputs.brand != '' }}
+        working-directory: ${{ inputs.working-directory }}
         run: |
           BRAND="${{ inputs.brand }}"
           sed -E -i "s/\"version\": \"([0-9]+\.[0-9]+\.[0-9]+)\"/\"version\": \"\1-$BRAND\"/g" package.json
       - name: Publish
+        working-directory: ${{ inputs.working-directory }}
         if: ${{ inputs.publish_package == true }}
         run: npm publish
       - name: Get package info
         id: package
         uses: codex-team/action-nodejs-package-info@v1.1
+        with:
+          path: ${{ inputs.working-directory }}
   sonarqube:
     if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     uses: ./.github/workflows/sonarqube.yaml
     secrets: inherit
+    with:
+      working-directory: ${{ inputs.working-directory }}
   sonarqube-with-coverage:
     if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
     needs: release
@@ -106,3 +119,4 @@ jobs:
     with:
       run_tests: ${{ inputs.run_tests }}
       brand: ${{ inputs.brand }}
+      working-directory: ${{ inputs.working-directory }}
