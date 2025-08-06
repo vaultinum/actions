@@ -1,3 +1,10 @@
+# ================================================================
+# DEPRECATED WORKFLOW
+# This workflow is deprecated for two reasons:
+# 1. the workflow `repo-sync/pull-request@v2` is deprecated
+# 2. does not offer the flexibility to choose another target branch
+# Please use 'open-deployment-pr.yaml' instead.
+# ================================================================
 name: Staging auto PR
 
 on:

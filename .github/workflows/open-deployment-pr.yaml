@@ -1,0 +1,45 @@
+name: Deployment auto PR
+
+on:
+  workflow_call:
+    inputs:
+      target_branch:
+        required: true
+        type: string
+      pr_title:
+        required: true
+        type: string
+      pr_body:
+        required: true
+        type: string
+      run_tests:
+        default: false
+        type: boolean
+    secrets:
+      GH_TOKEN:
+        required: true
+      SONAR_TOKEN:
+        required: true
+      SONAR_URL:
+        required: true
+
+jobs:
+  open-deployment-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create PR with GitHub CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          gh auth setup-git
+          gh pr create \
+            --base ${{ inputs.target_branch }} \
+            --head ${{ github.ref_name }} \
+            --title "${{ inputs.pr_title }}" \
+            --body "${{ inputs.pr_body }}" \
+            --label "deploy" \
+            --draft
+  sonarqube:
+    uses: ./.github/workflows/sonarqube.yaml
+    secrets: inherit
