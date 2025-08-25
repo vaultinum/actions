@@ -39,7 +39,7 @@ jobs:
       changed-files-specific: ${{ steps.changed-files-specific.outputs.any_changed }}
     steps:
       - name: Checkout Repo
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # fetches all history
       - uses: actions/setup-node@v4
