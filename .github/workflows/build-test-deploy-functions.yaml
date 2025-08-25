@@ -38,11 +38,15 @@ jobs:
     outputs:
       changed-files-specific: ${{ steps.changed-files-specific.outputs.any_changed }}
     steps:
+      - name: Remove git dir
+        run: |
+          rm -rf .git
       - name: Checkout Repo
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # fetches all history
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22.4.1
       - name: Check changed on functions
