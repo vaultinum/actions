@@ -31,10 +31,18 @@ on:
         required: true
       SONAR_URL:
         required: true
+      # Additional optional secrets that can be passed from calling workflow
+      LIBRARIES_IO_API_KEY:
+        required: false
+      SONATYPE_USER:
+        required: false
+      SONATYPE_PASSWORD:
+        required: false
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
   cancel-in-progress: true
+
 
 jobs:
   ci:
@@ -45,6 +53,10 @@ jobs:
     env:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+      # Optional secrets - only set if provided
+      LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
+      SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+      SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
     steps:
       - name: Checkout Current Repository
         uses: actions/checkout@v3
