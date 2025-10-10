@@ -46,6 +46,13 @@ on:
         required: false
       TEST_KEY:
         required: false
+      # Additional optional secrets that can be passed from calling workflow
+      LIBRARIES_IO_API_KEY:
+        required: false
+      SONATYPE_USER:
+        required: false
+      SONATYPE_PASSWORD:
+        required: false
 
 concurrency:
   group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
@@ -71,6 +78,10 @@ jobs:
       NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
       NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
       TEST_KEY: ${{ secrets.TEST_KEY }}
+      # Optional secrets - only set if provided
+      LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
+      SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+      SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
     steps:
       - name: Checkout Current Repository
         uses: actions/checkout@v4
@@ -80,7 +91,7 @@ jobs:
           node-version: 22.4.1
           registry-url: "https://npm.pkg.github.com/"
       - name: Trigger ci
-        uses: vaultinum/actions/ci@v22
+        uses: vaultinum/actions/ci@v28
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
