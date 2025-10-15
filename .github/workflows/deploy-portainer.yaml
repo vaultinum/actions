@@ -13,6 +13,10 @@ on:
             docker_component:
                 required: true
                 type: string
+            deploy_environment_tag:
+                required: false
+                type: string
+                description: "Tag used to deploy on all environments matching this tag"
             deploy_environment:
                 required: true
                 type: string
@@ -41,14 +45,68 @@ on:
             GH_TOKEN:
                 required: true
 concurrency:
-    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}
+    group: deploy-portainer-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}-${{ inputs.deploy_environment_tag || inputs.deploy_environment }}
     cancel-in-progress: true
 
 jobs:
+    get-endpoints:
+        name: Get target endpoints
+        runs-on: self-hosted
+        timeout-minutes: 5
+        outputs:
+            endpoints: ${{ steps.get-endpoints.outputs.endpoints }}
+        steps:
+            - name: Get target endpoints
+              id: get-endpoints
+              run: |
+                  # Extract the base URL from the PORTAINER_URL secret
+                  BASE_URL=$(echo "${{ secrets.PORTAINER_URL }}" | cut -d'/' -f1-3)
+
+                  if [ -z "${{ inputs.deploy_environment_tag }}" ]; then
+                      # No tag - use the endpoint from PORTAINER_URL directly
+                      ENDPOINT_ID=$(echo "${{ secrets.PORTAINER_URL }}" | sed -E 's#.*/endpoints/([0-9]+)/.*#\1#')
+                      echo "No tag specified - using endpoint from PORTAINER_URL: $ENDPOINT_ID"
+                      echo "endpoints=[\"$ENDPOINT_ID\"]" >> $GITHUB_OUTPUT
+
+                  else
+                      # Tag specified - get all endpoints that have this tag
+                      echo "Tag specified: ${{ inputs.deploy_environment_tag }}"
+
+                      TAGS_RESPONSE=$(curl --insecure --request GET "$BASE_URL/api/tags" \
+                          --header "X-API-Key: ${{ secrets.PORTAINER_API_KEY }}")
+
+                      # Find the tag and extract its endpoints
+                      TAG_INFO=$(echo "$TAGS_RESPONSE" | jq -r --arg tag "${{ inputs.deploy_environment_tag }}" \
+                          '.[] | select(.Name == $tag)')
+
+                      if [ -z "$TAG_INFO" ] || [ "$TAG_INFO" = "null" ]; then
+                          echo "Tag '${{ inputs.deploy_environment_tag }}' not found in Portainer"
+                          echo "Available tags:"
+                          echo "$TAGS_RESPONSE" | jq -r '.[].Name' | head -10
+                          echo "endpoints=[]" >> $GITHUB_OUTPUT
+                          exit 0
+                      fi
+
+                      ENDPOINT_IDS=$(echo "$TAG_INFO" | jq -c '.Endpoints | keys | map(tostring)')
+
+                      if [ "$ENDPOINT_IDS" = "[]" ] || [ -z "$ENDPOINT_IDS" ]; then
+                          echo "No endpoints found for tag '${{ inputs.deploy_environment_tag }}'"
+                          echo "endpoints=[]" >> $GITHUB_OUTPUT
+                      else
+                          echo "Found endpoints for tag '${{ inputs.deploy_environment_tag }}': $ENDPOINT_IDS"
+                          echo "endpoints=$ENDPOINT_IDS" >> $GITHUB_OUTPUT
+                      fi
+                  fi
+
     deploy-docker:
         name: Deploy docker image
+        needs: get-endpoints
         runs-on: self-hosted
         timeout-minutes: 15
+        if: needs.get-endpoints.outputs.endpoints != '[]'
+        strategy:
+            matrix:
+                endpoint_id: ${{ fromJSON(needs.get-endpoints.outputs.endpoints) }}
         steps:
             - name: Login to Github docker registry
               uses: docker/login-action@v1
@@ -56,22 +114,32 @@ jobs:
                   registry: ${{ inputs.registry }}
                   username: ${{ github.actor }}
                   password: ${{ secrets.GH_TOKEN }}
+            - name: Setup endpoint URL
+              id: endpoint
+              run: |
+                  ENDPOINT_ID="${{ matrix.endpoint_id }}"
+                  echo "Using endpoint ID: $ENDPOINT_ID for environment: ${{ inputs.deploy_environment }}"
+
+                  BASE_URL=$(echo "${{ secrets.PORTAINER_URL }}" | cut -d'/' -f1-3)
+                  echo "base_url=$BASE_URL" >> $GITHUB_OUTPUT
+                  echo "full_url=$BASE_URL/api/endpoints/$ENDPOINT_ID" >> $GITHUB_OUTPUT
             - name: Pull image
               run: |
-                  curl --insecure --request POST '${{ secrets.PORTAINER_URL }}/images/create?fromImage=${{ inputs.registry }}/${{ inputs.image_name }}&tag=${{ inputs.tag }}' \
+                  curl --insecure --request POST "${{ steps.endpoint.outputs.full_url }}/docker/images/create?fromImage=${{ inputs.registry }}/${{ inputs.image_name }}&tag=${{ inputs.tag }}" \
                        --header 'X-Registry-Auth: ${{ secrets.PORTAINER_REGISTRY_AUTH }}' \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
             - name: List containers
               id: containers
               run: |
-                  curl --insecure --get '${{ secrets.PORTAINER_URL }}/containers/json' \
-                       --data-urlencode 'filters={ "status": [ "running" ], "label": [ "component=${{ inputs.docker_component }}", "environment=${{ inputs.deploy_environment }}" ] }' \
+                  FILTERS='filters={ "status": [ "running" ], "label": [ "component=${{ inputs.docker_component }}", "environment=${{ inputs.deploy_environment }}" ] }'
+                  curl --insecure --get "${{ steps.endpoint.outputs.full_url }}/docker/containers/json" \
+                       --data-urlencode "$FILTERS" \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq --raw-output '[.[].Id] | ["ids=", join(" ")] | add' >> $GITHUB_OUTPUT
             - name: Stop containers
               run: |
                   for containerId in ${{ steps.containers.outputs.ids }}
                   do
-                  curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/containers/$containerId/stop" \
+                  curl --insecure --request POST "${{ steps.endpoint.outputs.full_url }}/docker/containers/$containerId/stop" \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
                   done
             - name: Create container
@@ -117,7 +185,8 @@ jobs:
                   }
                   REQUEST
 
-                  curl --insecure --request POST "${{ secrets.PORTAINER_URL }}/containers/create?name=$name" \
+                  cat request.json
+                  curl --insecure --request POST "${{ steps.endpoint.outputs.full_url }}/docker/containers/create?name=$name" \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' \
                        --header 'Content-Type: application/json' \
                        --data '@request.json' \
@@ -139,19 +208,19 @@ jobs:
                   echo "id=$id" >> $GITHUB_OUTPUT
             - name: Start new container
               run: |
-                  curl --insecure --request POST '${{ secrets.PORTAINER_URL }}/containers/${{ steps.new_container.outputs.id }}/start' \
+                  curl --insecure --request POST "${{ steps.endpoint.outputs.full_url }}/docker/containers/${{ steps.new_container.outputs.id }}/start" \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
             - name: Delete containers
               run: |
                   for containerId in ${{ steps.containers.outputs.ids }}
                   do
-                    curl --insecure --request DELETE "${{ secrets.PORTAINER_URL }}/containers/$containerId" \
+                    curl --insecure --request DELETE "${{ steps.endpoint.outputs.full_url }}/docker/containers/$containerId" \
                        --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}'
                   done
 
             - name: Summary
               run: |
-                  echo "# :green_circle: Deployment" >> $GITHUB_STEP_SUMMARY
+                  echo "# :green_circle: Deployment to ${{ inputs.deploy_environment }} (endpoint ${{ matrix.endpoint_id }})" >> $GITHUB_STEP_SUMMARY
                   echo "" >> $GITHUB_STEP_SUMMARY
                   echo "| Container ID                          | Container name                          | Status   |" >> $GITHUB_STEP_SUMMARY
                   echo "| ------------------------------------- | --------------------------------------- |:--------:|" >> $GITHUB_STEP_SUMMARY
