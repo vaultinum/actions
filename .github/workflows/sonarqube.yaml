@@ -1,67 +1,67 @@
 name: SonarQube
 
 on:
-  workflow_call:
-    inputs:
-      runner:
-        description: "The runner to use for the job"
-        type: string
-        default: "self-hosted"
-      run_tests:
-        default: false
-        type: boolean
-      brand:
-        type: string
-        description: Brand to use for the package
-      working-directory:
-        type: string
-        description: "The working directory for the job"
-        default: "."
-    secrets:
-      SONAR_TOKEN:
-        required: true
-      SONAR_URL:
-        required: true
+    workflow_call:
+        inputs:
+            runner:
+                description: "The runner to use for the job"
+                type: string
+                default: "self-hosted"
+            run_tests:
+                default: false
+                type: boolean
+            brand:
+                type: string
+                description: Brand to use for the package
+            working-directory:
+                type: string
+                description: "The working directory for the job"
+                default: "."
+        secrets:
+            SONAR_TOKEN:
+                required: true
+            SONAR_URL:
+                required: true
 
 concurrency:
-  group: sonarqube-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    group: sonarqube-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  check-changes:
-    runs-on: ubuntu-latest
-    outputs:
-      changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
-    steps:
-      - name: Checkout Current Repository
-        uses: actions/checkout@v4
-      - id: changes_detected
-        uses: vaultinum/actions/check-changes@v19
-        with:
-          pattern: ^${{ inputs.working-directory != '.' && format('{0}/', inputs.working-directory) || '' }}(src/|functions/)
-  sonarQube:
-    needs: check-changes
-    if: needs.check-changes.outputs.changes_detected == 'true'
-    name: SonarQube analysis
-    runs-on: ${{ inputs.runner }}
-    timeout-minutes: 20
-    steps:
-      - name: Checkout Current Repository
-        uses: actions/checkout@v3
-      - name: Download code coverage results
-        if: ${{ inputs.run_tests == true }}
-        uses: actions/download-artifact@v4
-        with:
-          name: code-coverage-report-${{ inputs.brand }}
-      - name: SonarQube Scan
-        uses: sonarsource/sonarqube-scan-action@master
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
-        with:
-          projectBaseDir: ${{ inputs.working-directory }}
-          args: >
-            -Dsonar.projectKey=${{ github.event.repository.name }}
-            -Dsonar.javascript.lcov.reportPaths=${{ inputs.working-directory }}/lcov.info
-            -Dsonar.dependencyCheck.jsonReportPath=${{ inputs.working-directory }}/dependency-check-report.json
-            -Dsonar.dependencyCheck.htmlReportPath=${{ inputs.working-directory }}/dependency-check-report.html
+    check-changes:
+        runs-on: ubuntu-latest
+        outputs:
+            changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v4
+            - id: changes_detected
+              uses: vaultinum/actions/check-changes@v30
+              with:
+                  pattern: ^${{ inputs.working-directory != '.' && format('{0}/', inputs.working-directory) || '' }}(src/|functions/)
+    sonarQube:
+        needs: check-changes
+        if: needs.check-changes.outputs.changes_detected == 'true'
+        name: SonarQube analysis
+        runs-on: ${{ inputs.runner }}
+        timeout-minutes: 20
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v4
+            - name: Download code coverage results
+              if: ${{ inputs.run_tests == true }}
+              uses: actions/download-artifact@v4
+              with:
+                  name: code-coverage-report-${{ inputs.brand }}
+            - name: SonarQube Scan
+              uses: sonarsource/sonarqube-scan-action@master
+              env:
+                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+                  SONAR_HOST_URL: ${{ secrets.SONAR_URL }}
+              with:
+                  projectBaseDir: ${{ inputs.working-directory }}
+                  args: >
+                      -Dsonar.projectKey=${{ github.event.repository.name }}
+                      -Dsonar.javascript.lcov.reportPaths=${{ inputs.working-directory }}/lcov.info
+                      -Dsonar.dependencyCheck.jsonReportPath=${{ inputs.working-directory }}/dependency-check-report.json
+                      -Dsonar.dependencyCheck.htmlReportPath=${{ inputs.working-directory }}/dependency-check-report.html

@@ -11,19 +11,19 @@ on:
                 required: true
 
 concurrency:
-  group: chromatic-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    group: chromatic-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
     check-changes:
         runs-on: ubuntu-latest
         outputs:
-          changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
+            changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
         steps:
-          - id: changes_detected
-            uses: vaultinum/actions/check-changes@v19
-            with:
-                pattern: ^src/|^\.storybook/
+            - id: changes_detected
+              uses: vaultinum/actions/check-changes@v30
+              with:
+                  pattern: ^src/|^\.storybook/
     chromatic-deployment:
         needs: check-changes
         if: needs.check-changes.outputs.changes_detected == 'true'
@@ -32,12 +32,12 @@ jobs:
             NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
             NODE_OPTIONS: --max-old-space-size=8192
         steps:
-            - uses: actions/checkout@v3
+            - uses: actions/checkout@v4
               with:
                   fetch-depth: 0
             - uses: actions/setup-node@v4
               with:
-                  node-version: 22.4.1
+                  node-version: 22.21.0
                   registry-url: "https://npm.pkg.github.com/"
             - name: Install dependencies
               run: npm i

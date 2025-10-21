@@ -1,105 +1,105 @@
 name: Unit test
 
 on:
-  workflow_call:
-    inputs:
-      vaultinum_owner_account_id:
-        required: false
-        type: string
-    secrets:
-      NPM_PACKAGE_ACCESS:
-        required: true
-      STRIPE_TEST_TOKEN:
-        required: true
+    workflow_call:
+        inputs:
+            vaultinum_owner_account_id:
+                required: false
+                type: string
+        secrets:
+            NPM_PACKAGE_ACCESS:
+                required: true
+            STRIPE_TEST_TOKEN:
+                required: true
 
 concurrency:
-  group: unit-test-functions-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    group: unit-test-functions-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  tests-api:
-    name: Tests api
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
-      VAULTINUM_OWNER_ACCOUNT_ID: ${{ inputs.vaultinum_owner_account_id }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.4.1
-      - name: Change npm cache directory
-        run: npm config set cache . --global
-      - name: Cache node modules
-        id: cache-npm
-        uses: actions/cache@v3
+    tests-api:
+        name: Tests api
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
         env:
-          cache-name: cache-node-modules
-        with:
-          path: ./.npm
-          key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-      - name: Install dependencies
-        run: npm --prefix functions ci --cache ./.npm --prefer-offline
-      - name: Tests api
-        run: npm --prefix functions run test:emulator:api
-  tests-common:
-    name: Tests common
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.4.1
-      - name: Cache node modules
-        id: cache-npm
-        uses: actions/cache@v3
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
+            VAULTINUM_OWNER_ACCOUNT_ID: ${{ inputs.vaultinum_owner_account_id }}
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22.21.0
+            - name: Change npm cache directory
+              run: npm config set cache . --global
+            - name: Cache node modules
+              id: cache-npm
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-node-modules
+              with:
+                  path: ./.npm
+                  key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+            - name: Install dependencies
+              run: npm --prefix functions ci --cache ./.npm --prefer-offline
+            - name: Tests api
+              run: npm --prefix functions run test:emulator:api
+    tests-common:
+        name: Tests common
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
         env:
-          cache-name: cache-node-modules
-        with:
-          path: ./.npm
-          key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            build-${{ env.cache-name }}-
-            build-
-      - name: Install dependencies
-        run: npm --prefix functions ci --cache ./.npm --prefer-offline
-      - name: Tests common
-        run: npm --prefix functions run test:emulator:common
-  tests-services:
-    name: Tests services
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
-    steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.4.1
-      - name: Cache node modules
-        id: cache-npm
-        uses: actions/cache@v3
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22.21.0
+            - name: Cache node modules
+              id: cache-npm
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-node-modules
+              with:
+                  path: ./.npm
+                  key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      build-${{ env.cache-name }}-
+                      build-
+            - name: Install dependencies
+              run: npm --prefix functions ci --cache ./.npm --prefer-offline
+            - name: Tests common
+              run: npm --prefix functions run test:emulator:common
+    tests-services:
+        name: Tests services
+        runs-on: ubuntu-latest
+        timeout-minutes: 15
         env:
-          cache-name: cache-node-modules
-        with:
-          path: ./.npm
-          key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            build-${{ env.cache-name }}-
-            build-
-      - name: Install dependencies
-        run: npm --prefix functions ci --cache ./.npm --prefer-offline
-      - name: Tests services
-        run: npm --prefix functions run test:emulator:services
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
+        steps:
+            - name: Checkout Repo
+              uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22.21.0
+            - name: Cache node modules
+              id: cache-npm
+              uses: actions/cache@v3
+              env:
+                  cache-name: cache-node-modules
+              with:
+                  path: ./.npm
+                  key: build-${{ env.cache-name }}-${{ hashFiles('**/package-lock.json') }}
+                  restore-keys: |
+                      build-${{ env.cache-name }}-
+                      build-
+            - name: Install dependencies
+              run: npm --prefix functions ci --cache ./.npm --prefer-offline
+            - name: Tests services
+              run: npm --prefix functions run test:emulator:services
