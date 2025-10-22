@@ -8,33 +8,33 @@
 name: Staging auto PR
 
 on:
-  workflow_call:
-    inputs:
-      run_tests:
-        default: false
-        type: boolean
-    secrets:
-      GH_TOKEN:
-        required: true
-      SONAR_TOKEN:
-        required: true
-      SONAR_URL:
-        required: true
+    workflow_call:
+        inputs:
+            run_tests:
+                default: false
+                type: boolean
+        secrets:
+            GH_TOKEN:
+                required: true
+            SONAR_TOKEN:
+                required: true
+            SONAR_URL:
+                required: true
 jobs:
-  open-staging-pr:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Auto create PR
-        uses: repo-sync/pull-request@v2
-        with:
-          destination_branch: "staging"
-          pr_label: "deploy"
-          pr_draft: true
-          pr_title: "Deployment for Staging"
-          pr_body: "Auto-generated deployment PR to 'staging'"
-          github_token: ${{ secrets.GH_TOKEN }}
-          run_tests: ${{ inputs.run_tests }}
-  sonarqube:
-    uses: ./.github/workflows/sonarqube.yaml
-    secrets: inherit
+    open-staging-pr:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Auto create PR
+              uses: repo-sync/pull-request@v2
+              with:
+                  destination_branch: "staging"
+                  pr_label: "deploy"
+                  pr_draft: true
+                  pr_title: "Deployment for Staging"
+                  pr_body: "Auto-generated deployment PR to 'staging'"
+                  github_token: ${{ secrets.GH_TOKEN }}
+                  run_tests: ${{ inputs.run_tests }}
+    sonarqube:
+        uses: ./.github/workflows/sonarqube.yaml
+        secrets: inherit

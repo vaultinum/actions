@@ -1,34 +1,34 @@
 name: Deploy functions
 author: Vaultinum
 inputs:
-  FUNCTIONS_ENVIRONMENT:
-    type: string
-  GCP_SA_KEY:
-    type: string
-  NPM_PACKAGE_ACCESS:
-    type: string
+    FUNCTIONS_ENVIRONMENT:
+        type: string
+    GCP_SA_KEY:
+        type: string
+    NPM_PACKAGE_ACCESS:
+        type: string
 
 runs:
-  using: composite
-  steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v3
-    - uses: actions/setup-node@v4
-      with:
-        node-version: 22.4.1
-    - uses: actions/download-artifact@v4
-      with:
-        name: functions-build-output
-        path: functions/lib
-    - name: Replace token
-      shell: bash
-      run: sed -i "s/\${NPM_PACKAGE_ACCESS}/${{ inputs.NPM_PACKAGE_ACCESS }}/g" functions/.npmrc # replace token
-    - name: Install Dependencies
-      shell: bash
-      run: npm --prefix functions ci
-    - name: Deploy functions to Firebase
-      uses: w9jds/firebase-action@v13.29.1
-      with:
-        args: deploy -P ${{ inputs.FUNCTIONS_ENVIRONMENT }} --only functions
-      env:
-        GCP_SA_KEY : ${{ inputs.GCP_SA_KEY }}
+    using: composite
+    steps:
+        - name: Checkout Repo
+          uses: actions/checkout@v4
+        - uses: actions/setup-node@v4
+          with:
+              node-version: 22.21.0
+        - uses: actions/download-artifact@v4
+          with:
+              name: functions-build-output
+              path: functions/lib
+        - name: Replace token
+          shell: bash
+          run: sed -i "s/\${NPM_PACKAGE_ACCESS}/${{ inputs.NPM_PACKAGE_ACCESS }}/g" functions/.npmrc # replace token
+        - name: Install Dependencies
+          shell: bash
+          run: npm --prefix functions ci
+        - name: Deploy functions to Firebase
+          uses: w9jds/firebase-action@v13.29.1
+          with:
+              args: deploy -P ${{ inputs.FUNCTIONS_ENVIRONMENT }} --only functions
+          env:
+              GCP_SA_KEY: ${{ inputs.GCP_SA_KEY }}

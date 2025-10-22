@@ -1,157 +1,157 @@
 name: Setup Node and publish snapshot
 
 on:
-  workflow_call:
-    inputs:
-      run_npm_install:
-        default: false
-        type: boolean
-      run_eslint:
-        default: true
-        type: boolean
-      run_build:
-        default: true
-        type: boolean
-      run_tests:
-        default: false
-        type: boolean
-      runs-on:
-        default: ubuntu-latest
-        type: string
-      timeout-minutes:
-        default: 20
-        type: number
-      brand:
-        type: string
-        description: Brand to use for the package
-      snapshot-suffix:
-        type: string
-        description: Snapshot suffix to use for the package
-      working-directory:
-        type: string
-        description: The working directory for the job
-        default: "."
-    outputs:
-      snapshot-full-version:
-        description: The full version of the snapshot
-        value: ${{ jobs.publish-snapshot.outputs.snapshot-full-version }}
-    secrets:
-      NPM_PACKAGE_ACCESS:
-        required: true
-      GH_TOKEN:
-        required: true
-      SONAR_TOKEN:
-        required: false
-      SONAR_URL:
-        required: false
-      TEST_KEY:
-        required: false
-      # Additional optional secrets that can be passed from calling workflow
-      LIBRARIES_IO_API_KEY:
-        required: false
-      SONATYPE_USER:
-        required: false
-      SONATYPE_PASSWORD:
-        required: false
+    workflow_call:
+        inputs:
+            run_npm_install:
+                default: false
+                type: boolean
+            run_eslint:
+                default: true
+                type: boolean
+            run_build:
+                default: true
+                type: boolean
+            run_tests:
+                default: false
+                type: boolean
+            runs-on:
+                default: ubuntu-latest
+                type: string
+            timeout-minutes:
+                default: 20
+                type: number
+            brand:
+                type: string
+                description: Brand to use for the package
+            snapshot-suffix:
+                type: string
+                description: Snapshot suffix to use for the package
+            working-directory:
+                type: string
+                description: The working directory for the job
+                default: "."
+        outputs:
+            snapshot-full-version:
+                description: The full version of the snapshot
+                value: ${{ jobs.publish-snapshot.outputs.snapshot-full-version }}
+        secrets:
+            NPM_PACKAGE_ACCESS:
+                required: true
+            GH_TOKEN:
+                required: true
+            SONAR_TOKEN:
+                required: false
+            SONAR_URL:
+                required: false
+            TEST_KEY:
+                required: false
+            # Additional optional secrets that can be passed from calling workflow
+            LIBRARIES_IO_API_KEY:
+                required: false
+            SONATYPE_USER:
+                required: false
+            SONATYPE_PASSWORD:
+                required: false
 
 concurrency:
-  group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
-  cancel-in-progress: true
+    group: publish-snapshot-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}${{ inputs.brand }}
+    cancel-in-progress: true
 
 jobs:
-  generate-snapshot-suffix:
-    runs-on: ${{ inputs.runs-on }}
-    outputs:
-      snapshot-suffix: ${{ steps.generate-suffix.outputs.snapshot-suffix || inputs.snapshot-suffix }}
-    steps:
-      - name: Generate suffix
-        if:  ${{ inputs.snapshot-suffix == '' }}
-        id: generate-suffix
-        uses: vaultinum/actions/generate-suffix@v19
-  publish-snapshot:
-    needs: generate-snapshot-suffix
-    runs-on: ${{ inputs.runs-on }}
-    outputs:
-      snapshot-full-version: ${{ steps.package.outputs.version }}
-    timeout-minutes: ${{ inputs.timeout-minutes }}
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-      NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
-      TEST_KEY: ${{ secrets.TEST_KEY }}
-      # Optional secrets - only set if provided
-      LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
-      SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
-      SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-    steps:
-      - name: Checkout Current Repository
-        uses: actions/checkout@v4
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.4.1
-          registry-url: "https://npm.pkg.github.com/"
-      - name: Trigger ci
-        uses: vaultinum/actions/ci@v28
-        with:
-          run_npm_install: ${{ inputs.run_npm_install }}
-          run_eslint: ${{ inputs.run_eslint }}
-          run_build: ${{ inputs.run_build }}
-          run_tests: ${{ inputs.run_tests }}
-          brand: ${{ inputs.brand }}
-          working-directory: ${{ inputs.working-directory }}
-      - name: Update snapshot version
-        if: ${{ inputs.brand == '' }}
-        working-directory: ${{ inputs.working-directory }}
-        run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
+    generate-snapshot-suffix:
+        runs-on: ${{ inputs.runs-on }}
+        outputs:
+            snapshot-suffix: ${{ steps.generate-suffix.outputs.snapshot-suffix || inputs.snapshot-suffix }}
+        steps:
+            - name: Generate suffix
+              if: ${{ inputs.snapshot-suffix == '' }}
+              id: generate-suffix
+              uses: vaultinum/actions/generate-suffix@v30
+    publish-snapshot:
+        needs: generate-snapshot-suffix
+        runs-on: ${{ inputs.runs-on }}
+        outputs:
+            snapshot-full-version: ${{ steps.package.outputs.version }}
+        timeout-minutes: ${{ inputs.timeout-minutes }}
         env:
-          PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}
-      - name: Update snapshot version for brand
-        if: ${{ inputs.brand != '' }}
-        working-directory: ${{ inputs.working-directory }}
-        run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
-        env:
-          PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}-${{ inputs.brand }}
-      - name: Publish snapshot
-        working-directory: ${{ inputs.working-directory }}
-        run: npm publish --tag=snapshot
-      - name: Find package info comment
-        uses: peter-evans/find-comment@v2
-        id: find-comment
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            NODE_AUTH_TOKEN: ${{ secrets.GH_TOKEN }}
+            TEST_KEY: ${{ secrets.TEST_KEY }}
+            # Optional secrets - only set if provided
+            LIBRARIES_IO_API_KEY: ${{ secrets.LIBRARIES_IO_API_KEY }}
+            SONATYPE_USER: ${{ secrets.SONATYPE_USER }}
+            SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v4
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22.21.0
+                  registry-url: "https://npm.pkg.github.com/"
+            - name: Trigger ci
+              uses: vaultinum/actions/ci@v30
+              with:
+                  run_npm_install: ${{ inputs.run_npm_install }}
+                  run_eslint: ${{ inputs.run_eslint }}
+                  run_build: ${{ inputs.run_build }}
+                  run_tests: ${{ inputs.run_tests }}
+                  brand: ${{ inputs.brand }}
+                  working-directory: ${{ inputs.working-directory }}
+            - name: Update snapshot version
+              if: ${{ inputs.brand == '' }}
+              working-directory: ${{ inputs.working-directory }}
+              run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
+              env:
+                  PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}
+            - name: Update snapshot version for brand
+              if: ${{ inputs.brand != '' }}
+              working-directory: ${{ inputs.working-directory }}
+              run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
+              env:
+                  PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}-${{ inputs.brand }}
+            - name: Publish snapshot
+              working-directory: ${{ inputs.working-directory }}
+              run: npm publish --tag=snapshot
+            - name: Find package info comment
+              uses: peter-evans/find-comment@v2
+              id: find-comment
+              with:
+                  issue-number: ${{ github.event.pull_request.number }}
+                  comment-author: github-actions[bot]
+                  body-includes: |
+                      ```${{ inputs.brand }}
+            - name: Get package info
+              id: package
+              uses: codex-team/action-nodejs-package-info@v1.1
+              with:
+                  path: ${{ inputs.working-directory }}
+            - name: Create or update package info comment
+              uses: peter-evans/create-or-update-comment@v2
+              with:
+                  comment-id: ${{ steps.find-comment.outputs.comment-id }}
+                  issue-number: ${{ github.event.pull_request.number }}
+                  body: |
+                      ```${{ inputs.brand }}
+                      npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
+                  edit-mode: replace
+    sonarqube:
+        if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
+        uses: ./.github/workflows/sonarqube.yaml
+        secrets: inherit
         with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: github-actions[bot]
-          body-includes: |
-            ```${{ inputs.brand }}
-      - name: Get package info
-        id: package
-        uses: codex-team/action-nodejs-package-info@v1.1
+            working-directory: ${{ inputs.working-directory }}
+    sonarqube-with-coverage:
+        if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
+        needs: publish-snapshot # if run_tests == true, wait for vaultinum/actions/ci to upload code coverage results needed by sonarqube.yaml
+        uses: ./.github/workflows/sonarqube.yaml
+        secrets: inherit
         with:
-          path: ${{ inputs.working-directory }}
-      - name: Create or update package info comment
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          comment-id: ${{ steps.find-comment.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ```${{ inputs.brand }}
-            npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
-          edit-mode: replace
-  sonarqube:
-    if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
-    uses: ./.github/workflows/sonarqube.yaml
-    secrets: inherit
-    with:
-      working-directory: ${{ inputs.working-directory }}
-  sonarqube-with-coverage:
-    if: ${{ inputs.run_tests == true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
-    needs: publish-snapshot # if run_tests == true, wait for vaultinum/actions/ci to upload code coverage results needed by sonarqube.yaml
-    uses: ./.github/workflows/sonarqube.yaml
-    secrets: inherit
-    with:
-      run_tests: ${{ inputs.run_tests }}
-      brand: ${{ inputs.brand }}
-      working-directory: ${{ inputs.working-directory }}
-  labeler:
-    if:  ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
-    uses: ./.github/workflows/labeler.yaml
-    secrets: inherit
+            run_tests: ${{ inputs.run_tests }}
+            brand: ${{ inputs.brand }}
+            working-directory: ${{ inputs.working-directory }}
+    labeler:
+        if: ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
+        uses: ./.github/workflows/labeler.yaml
+        secrets: inherit

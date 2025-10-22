@@ -2,39 +2,39 @@ name: Check changes
 description: Check if changes were made to specific files
 author: Vaultinum
 inputs:
-  pattern:
-    type: string
-    default: ".*"
-    description: Pattern to match files against (default ".*")
-  base_branch:
-    type: string
-    default: main
-    description: Base branch to compare changes with (default "main")
+    pattern:
+        type: string
+        default: ".*"
+        description: Pattern to match files against (default ".*")
+    base_branch:
+        type: string
+        default: main
+        description: Base branch to compare changes with (default "main")
 
 outputs:
-  changes_detected:
-    description: "Changes detected (true/false)"
-    value: ${{ steps.filter-changed-files.outputs.changes_detected }}
+    changes_detected:
+        description: "Changes detected (true/false)"
+        value: ${{ steps.filter-changed-files.outputs.changes_detected }}
 
 runs:
-  using: composite
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0 # Ensure the full history is fetched to get all commits
+    using: composite
+    steps:
+        - name: Checkout repository
+          uses: actions/checkout@v4
+          with:
+              fetch-depth: 0 # Ensure the full history is fetched to get all commits
 
-    - name: Fetch ${{ inputs.base_branch }} branch
-      shell: bash
-      run: git fetch origin ${{ inputs.base_branch }}
+        - name: Fetch ${{ inputs.base_branch }} branch
+          shell: bash
+          run: git fetch origin ${{ inputs.base_branch }}
 
-    - name: Filter changed files 
-      id: filter-changed-files
-      shell: bash
-      run: |
-        if git diff --name-only origin/${{ inputs.base_branch }}...HEAD | grep -E '${{ inputs.pattern }}'; then
-          echo "changes_detected=true" >> $GITHUB_OUTPUT
-        else
-          echo "changes_detected=false" >> $GITHUB_OUTPUT
-          echo "No changes detected in files matching pattern '${{ inputs.pattern }}'"
-        fi
+        - name: Filter changed files
+          id: filter-changed-files
+          shell: bash
+          run: |
+              if git diff --name-only origin/${{ inputs.base_branch }}...HEAD | grep -E '${{ inputs.pattern }}'; then
+                echo "changes_detected=true" >> $GITHUB_OUTPUT
+              else
+                echo "changes_detected=false" >> $GITHUB_OUTPUT
+                echo "No changes detected in files matching pattern '${{ inputs.pattern }}'"
+              fi

@@ -1,97 +1,97 @@
 name: Generate changelog, Merge develop, Make production Pull Request
 
 on:
-  workflow_call:
-    inputs:
-      run_tests:
-        type: boolean
-        default: true
-      sleep:
-        type: boolean
-        description: Sleep for 5 minutes
-        default: false
-      url:
-        type: string
-        description: The url to test
-        required: false
-      application:
-        description: The application to test
-        type: string
-        required: false
-    secrets:
-      NPM_PACKAGE_ACCESS:
-        required: true
-      GH_TOKEN:
-        required: true
-      E2E_ACCESS_TOKEN:
-        description: Access token for e2e tests
-        required: false
+    workflow_call:
+        inputs:
+            run_tests:
+                type: boolean
+                default: true
+            sleep:
+                type: boolean
+                description: Sleep for 5 minutes
+                default: false
+            url:
+                type: string
+                description: The url to test
+                required: false
+            application:
+                description: The application to test
+                type: string
+                required: false
+        secrets:
+            NPM_PACKAGE_ACCESS:
+                required: true
+            GH_TOKEN:
+                required: true
+            E2E_ACCESS_TOKEN:
+                description: Access token for e2e tests
+                required: false
 
 concurrency:
-  group: staging-deployment-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    group: staging-deployment-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
-  changelog:
-    # Only if the PR develop -> staging is in review
-    if: github.event.pull_request.head.ref == 'develop'
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
-    steps:
-      - uses: actions/checkout@v3
+    changelog:
+        # Only if the PR develop -> staging is in review
+        if: github.event.pull_request.head.ref == 'develop'
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        env:
+            NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  ref: develop
+            - uses: fregante/setup-git-user@v1
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 22.21.0
+            - name: Install dependencies
+              run: npm ci
+            - name: Generate changelog
+              run: npm run release
+            - name: Commit and push tag
+              run: git push --follow-tags origin ${{ github.event.pull_request.head.ref }}
+    merge-develop:
+        needs: changelog
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@v4
+            - name: Merge develop -> staging
+              uses: devmasx/merge-branch@master
+              with:
+                  type: now
+                  message: "Merge develop into staging"
+                  from_branch: develop
+                  target_branch: staging
+                  github_token: ${{ secrets.GH_TOKEN }}
+    production-pr:
+        needs: merge-develop
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  ref: staging
+            - name: Auto create PR
+              uses: repo-sync/pull-request@v2
+              with:
+                  source_branch: "staging"
+                  destination_branch: "main"
+                  pr_label: "deploy"
+                  pr_title: "Deployment for Production"
+                  pr_body: "Auto-generated deployment PR to 'main'"
+                  github_token: ${{ secrets.GH_TOKEN }}
+    tests:
+        if: ${{ inputs.run_tests }}
+        uses: ./.github/workflows/e2e-tests.yaml
         with:
-          fetch-depth: 0
-          ref: develop
-      - uses: fregante/setup-git-user@v1
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.4.1
-      - name: Install dependencies
-        run: npm ci
-      - name: Generate changelog
-        run: npm run release
-      - name: Commit and push tag
-        run: git push --follow-tags origin ${{ github.event.pull_request.head.ref }}
-  merge-develop:
-    needs: changelog
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v3
-      - name: Merge develop -> staging
-        uses: devmasx/merge-branch@master
-        with:
-          type: now
-          message: "Merge develop into staging"
-          from_branch: develop
-          target_branch: staging
-          github_token: ${{ secrets.GH_TOKEN }}
-  production-pr:
-    needs: merge-develop
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          ref: staging
-      - name: Auto create PR
-        uses: repo-sync/pull-request@v2
-        with:
-          source_branch: "staging"
-          destination_branch: "main"
-          pr_label: "deploy"
-          pr_title: "Deployment for Production"
-          pr_body: "Auto-generated deployment PR to 'main'"
-          github_token: ${{ secrets.GH_TOKEN }}
-  tests:
-    if: ${{ inputs.run_tests }}
-    uses: ./.github/workflows/e2e-tests.yaml
-    with:
-      sleep: ${{ inputs.sleep }}
-      application: ${{ inputs.application }}
-      url: ${{ inputs.url }}
-    secrets:
-      e2e_access_token: ${{ secrets.E2E_ACCESS_TOKEN }}
+            sleep: ${{ inputs.sleep }}
+            application: ${{ inputs.application }}
+            url: ${{ inputs.url }}
+        secrets:
+            e2e_access_token: ${{ secrets.E2E_ACCESS_TOKEN }}
