@@ -31,6 +31,10 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22.21.0
+            - uses: actions/setup-java@v5
+              with:
+                  distribution: "temurin"
+                  java-version: "21"
             - name: Change npm cache directory
               run: npm config set cache . --global
             - name: Cache node modules
@@ -60,6 +64,10 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22.21.0
+            - uses: actions/setup-java@v5
+              with:
+                  distribution: "temurin"
+                  java-version: "21"
             - name: Cache node modules
               id: cache-npm
               uses: actions/cache@v3
@@ -88,6 +96,10 @@ jobs:
             - uses: actions/setup-node@v4
               with:
                   node-version: 22.21.0
+            - uses: actions/setup-java@v5
+              with:
+                  distribution: "temurin"
+                  java-version: "21"
             - name: Cache node modules
               id: cache-npm
               uses: actions/cache@v3
