@@ -1,4 +1,4 @@
-name: Create Tag on Feature Merge to Main
+name: Create Tag on Feature Merge to Main 
 
 on:
     push:
