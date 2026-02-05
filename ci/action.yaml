@@ -11,6 +11,10 @@ inputs:
   run_build:
     default: true
     type: boolean
+  run_build_mode:
+    type: string
+    description: "The mode to run the build. Can be 'node' or 'bun'. Default is 'node'."
+    default: "node"
   run_tests:
     default: false
     type: boolean
@@ -41,14 +45,19 @@ runs:
       run: npm run eslint
     - name: Build for brand
       working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.brand != '' }}
+      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'node' && inputs.brand != '' }}
       shell: bash
       run: npm run build:${{ inputs.brand }}
     - name: Build
       working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.brand == '' }}
+      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'node' && inputs.brand == '' }}
       shell: bash
       run: npm run build
+    - name: Build with Bun
+      working-directory: ${{ inputs.working-directory }}
+      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'bun' }}
+      shell: bash
+      run: bun build build.ts
     - name: Run tests
       working-directory: ${{ inputs.working-directory }}
       if: ${{ inputs.run_tests == 'true' }}
