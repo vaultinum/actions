@@ -29,44 +29,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install dependencies
-      working-directory: ${{ inputs.working-directory }}
-      shell: bash
-      run: |
-        if [ "${{ inputs.run_npm_install }}" == 'true' ]; then
-          npm i
-        else
-          npm ci
-        fi
-    - name: ESLint
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_eslint == 'true' }}
-      shell: bash
-      run: npm run eslint
-    - name: Build for brand
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'node' && inputs.brand != '' }}
-      shell: bash
-      run: npm run build:${{ inputs.brand }}
-    - name: Build
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'node' && inputs.brand == '' }}
-      shell: bash
-      run: npm run build
-    - name: Build with Bun
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.run_build_mode == 'bun' }}
-      shell: bash
-      run: bun build build.ts
-    - name: Run tests
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_tests == 'true' }}
-      shell: bash
-      run: npm run test -- --coverage
-    - name: Upload code coverage results
-      if: ${{ inputs.run_tests == 'true' }}
-      uses: actions/upload-artifact@v4
+    - uses: vaultinum/actions/ci-node@KYS-6279-create-ai-server-structure
+      if: ${{ inputs.run_build_mode == 'node' }}
       with:
-        name: code-coverage-report-${{ inputs.brand }}
-        path: ${{ inputs.working-directory }}/coverage/lcov.info
-        retention-days: 5
+        run_npm_install: ${{ inputs.run_npm_install }}
+        run_eslint: ${{ inputs.run_eslint }}
+        run_build: ${{ inputs.run_build }}
+        run_tests: ${{ inputs.run_tests }}
+        brand: ${{ inputs.brand }}
+        working-directory: ${{ inputs.working-directory }}
+    - uses: vaultinum/actions/ci-bun@KYS-6279-create-ai-server-structure
+      if: ${{ inputs.run_build_mode == 'bun' }}
+      with:
+        run_npm_install: ${{ inputs.run_npm_install }}
+        run_eslint: ${{ inputs.run_eslint }}
+        run_build: ${{ inputs.run_build }}
+        run_tests: ${{ inputs.run_tests }}
+        brand: ${{ inputs.brand }}
+        working-directory: ${{ inputs.working-directory }}
