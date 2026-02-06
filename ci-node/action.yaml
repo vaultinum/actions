@@ -1,0 +1,63 @@
+name: CI - Node
+description: Run install dependencies, build, eslint, tests, generate docs
+author: Vaultinum
+inputs:
+  run_npm_install:
+    default: false
+    type: boolean
+  run_eslint:
+    default: true
+    type: boolean
+  run_build:
+    default: true
+    type: boolean
+  run_tests:
+    default: false
+    type: boolean
+  brand:
+    type: string
+    description: Brand to use for the package
+  working-directory:
+    type: string
+    description: "The working directory for the job"
+    default: "."
+
+runs:
+  using: composite
+  steps:
+    - name: Install dependencies
+      working-directory: ${{ inputs.working-directory }}
+      shell: bash
+      run: |
+        if [ "${{ inputs.run_npm_install }}" == 'true' ]; then
+          npm i
+        else
+          npm ci
+        fi
+    - name: ESLint
+      working-directory: ${{ inputs.working-directory }}
+      if: ${{ inputs.run_eslint == 'true' }}
+      shell: bash
+      run: npm run eslint
+    - name: Build for brand
+      working-directory: ${{ inputs.working-directory }}
+      if: ${{ inputs.run_build == 'true' && inputs.brand != '' }}
+      shell: bash
+      run: npm run build:${{ inputs.brand }}
+    - name: Build
+      working-directory: ${{ inputs.working-directory }}
+      if: ${{ inputs.run_build == 'true' && inputs.brand == '' }}
+      shell: bash
+      run: npm run build
+    - name: Run tests
+      working-directory: ${{ inputs.working-directory }}
+      if: ${{ inputs.run_tests == 'true' }}
+      shell: bash
+      run: npm run test -- --coverage
+    - name: Upload code coverage results
+      if: ${{ inputs.run_tests == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage-report-${{ inputs.brand }}
+        path: ${{ inputs.working-directory }}/coverage/lcov.info
+        retention-days: 5
