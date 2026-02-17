@@ -12,9 +12,9 @@ on:
             run_build:
                 default: true
                 type: boolean
-            run_build_mode:
+            run_build_runtime:
                 type: string
-                description: "The mode to run the build. Can be 'node' or 'bun'. Default is 'node'."
+                description: "The runtime to use for the build. Can be 'node' or 'bun'. Default is 'node'."
                 default: "node"
             run_tests:
                 default: false
@@ -66,12 +66,12 @@ jobs:
               with:
                   ref: ${{ github.event.pull_request.head.sha }}
             - name: Setup Node
-              if: ${{ inputs.run_build_mode == 'node' }}
+              if: ${{ inputs.run_build_runtime == 'node' }}
               uses: actions/setup-node@v4
               with:
                   node-version: 22.21.0
             - name: Setup Bun
-              if: ${{ inputs.run_build_mode == 'bun' }}
+              if: ${{ inputs.run_build_runtime == 'bun' }}
               uses: oven-sh/setup-bun@v2
             - name: Trigger ci
               uses: vaultinum/actions/ci@39
@@ -79,7 +79,7 @@ jobs:
                   run_npm_install: ${{ inputs.run_npm_install }}
                   run_eslint: ${{ inputs.run_eslint }}
                   run_build: ${{ inputs.run_build }}
-                  run_build_mode: ${{ inputs.run_build_mode }}
+                  run_build_runtime: ${{ inputs.run_build_runtime }}
                   run_tests: ${{ inputs.run_tests }}
                   brand: ${{ inputs.brand }}
                   working-directory: ${{ inputs.working-directory }}

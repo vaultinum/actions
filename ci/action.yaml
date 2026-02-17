@@ -11,9 +11,9 @@ inputs:
   run_build:
     default: true
     type: boolean
-  run_build_mode:
+  run_build_runtime:
     type: string
-    description: "The mode to run the build. Can be 'node' or 'bun'. Default is 'node'."
+    description: "The runtime to use for the build. Can be 'node' or 'bun'. Default is 'node'."
     default: "node"
   run_tests:
     default: false
@@ -30,7 +30,7 @@ runs:
   using: composite
   steps:
     - uses: vaultinum/actions/ci-node@39
-      if: ${{ inputs.run_build_mode == 'node' }}
+      if: ${{ inputs.run_build_runtime == 'node' }}
       with:
         run_npm_install: ${{ inputs.run_npm_install }}
         run_eslint: ${{ inputs.run_eslint }}
@@ -39,7 +39,7 @@ runs:
         brand: ${{ inputs.brand }}
         working-directory: ${{ inputs.working-directory }}
     - uses: vaultinum/actions/ci-bun@39
-      if: ${{ inputs.run_build_mode == 'bun' }}
+      if: ${{ inputs.run_build_runtime == 'bun' }}
       with:
         run_npm_install: ${{ inputs.run_npm_install }}
         run_eslint: ${{ inputs.run_eslint }}
