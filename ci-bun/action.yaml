@@ -42,7 +42,7 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       if: ${{ inputs.run_tests == 'true' }}
       shell: bash
-      run: bun run test -- --coverage
+      run: bun test --coverage --coverage-reporter=lcov
     - name: Upload code coverage results
       if: ${{ inputs.run_tests == 'true' }}
       uses: actions/upload-artifact@v4
