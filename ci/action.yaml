@@ -11,6 +11,10 @@ inputs:
   run_build:
     default: true
     type: boolean
+  run_build_runtime:
+    type: string
+    description: "The runtime to use for the build. Can be 'node' or 'bun'. Default is 'node'."
+    default: "node"
   run_tests:
     default: false
     type: boolean
@@ -25,39 +29,21 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install dependencies
-      working-directory: ${{ inputs.working-directory }}
-      shell: bash
-      run: |
-        if [ "${{ inputs.run_npm_install }}" == 'true' ]; then
-          npm i
-        else
-          npm ci
-        fi
-    - name: ESLint
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_eslint == 'true' }}
-      shell: bash
-      run: npm run eslint
-    - name: Build for brand
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.brand != '' }}
-      shell: bash
-      run: npm run build:${{ inputs.brand }}
-    - name: Build
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_build == 'true' && inputs.brand == '' }}
-      shell: bash
-      run: npm run build
-    - name: Run tests
-      working-directory: ${{ inputs.working-directory }}
-      if: ${{ inputs.run_tests == 'true' }}
-      shell: bash
-      run: npm run test -- --coverage
-    - name: Upload code coverage results
-      if: ${{ inputs.run_tests == 'true' }}
-      uses: actions/upload-artifact@v4
+    - uses: vaultinum/actions/ci-node@39
+      if: ${{ inputs.run_build_runtime == 'node' }}
       with:
-        name: code-coverage-report-${{ inputs.brand }}
-        path: ${{ inputs.working-directory }}/coverage/lcov.info
-        retention-days: 5
+        run_npm_install: ${{ inputs.run_npm_install }}
+        run_eslint: ${{ inputs.run_eslint }}
+        run_build: ${{ inputs.run_build }}
+        run_tests: ${{ inputs.run_tests }}
+        brand: ${{ inputs.brand }}
+        working-directory: ${{ inputs.working-directory }}
+    - uses: vaultinum/actions/ci-bun@39
+      if: ${{ inputs.run_build_runtime == 'bun' }}
+      with:
+        run_npm_install: ${{ inputs.run_npm_install }}
+        run_eslint: ${{ inputs.run_eslint }}
+        run_build: ${{ inputs.run_build }}
+        run_tests: ${{ inputs.run_tests }}
+        brand: ${{ inputs.brand }}
+        working-directory: ${{ inputs.working-directory }}
