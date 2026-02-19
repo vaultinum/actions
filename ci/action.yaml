@@ -29,7 +29,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: vaultinum/actions/ci-node@v40
+    - uses: vaultinum/actions/ci-node@v41
       if: ${{ inputs.run_build_runtime == 'node' }}
       with:
         run_npm_install: ${{ inputs.run_npm_install }}
@@ -38,7 +38,7 @@ runs:
         run_tests: ${{ inputs.run_tests }}
         brand: ${{ inputs.brand }}
         working-directory: ${{ inputs.working-directory }}
-    - uses: vaultinum/actions/ci-bun@v40
+    - uses: vaultinum/actions/ci-bun@v41
       if: ${{ inputs.run_build_runtime == 'bun' }}
       with:
         run_npm_install: ${{ inputs.run_npm_install }}
