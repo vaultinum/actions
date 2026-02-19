@@ -94,7 +94,7 @@ jobs:
               if: ${{ inputs.run_build_runtime == 'bun' }}
               uses: oven-sh/setup-bun@v2
             - name: Trigger ci
-              uses: vaultinum/actions/ci@v41
+              uses: vaultinum/actions/ci@v42
               with:
                   run_npm_install: ${{ inputs.run_npm_install }}
                   run_eslint: ${{ inputs.run_eslint }}
@@ -103,9 +103,14 @@ jobs:
                   run_tests: ${{ inputs.run_tests }}
                   brand: ${{ inputs.brand }}
                   working-directory: ${{ inputs.working-directory }}
-            - name: Generate changelog
+            - name: Generate changelog with Node
+              if: ${{ inputs.run_build_runtime == 'node' }}
               working-directory: ${{ inputs.working-directory }}
               run: npm run release
+            - name: Generate changelog with Bun
+              if: ${{ inputs.run_build_runtime == 'bun' }}
+              working-directory: ${{ inputs.working-directory }}
+              run: bun run release
             - name: Commit and push tag
               if: ${{ inputs.brand == '' || inputs.brand == 'vaultinum' }}
               working-directory: ${{ inputs.working-directory }}
