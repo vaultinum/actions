@@ -131,7 +131,7 @@ jobs:
                   }
                   EOF
 
-                      curl --insecure -v -w "%{http_code}" --request PUT "$BASE_URL/api/stacks/$STACK_ID?endpointId=$ENDPOINT_ID" \
+                      curl --insecure -v --trace trace.log -w "%{http_code}" --request PUT "$BASE_URL/api/stacks/$STACK_ID?endpointId=$ENDPOINT_ID" \
                           --header "Content-Type: application/json" \
                           --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
                           --data "@request.json" \
@@ -139,6 +139,8 @@ jobs:
 
                       echo "Stack updated successfully."
                   fi
+                  echo "------------------------------"
+                  cat trace.log
                   echo "------------------------------"
                   cat request.json
                   echo "------------------------------"
