@@ -139,8 +139,11 @@ jobs:
 
                       echo "Stack updated successfully."
                   fi
-
+                  echo "------------------------------"
+                  cat request.json
+                  echo "------------------------------"
                   cat response.json
+                  echo "------------------------------"
             - name: Wait for new container to be stopped
               run: |
                   sleep 10
