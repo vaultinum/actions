@@ -29,7 +29,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: vaultinum/actions/ci-node@v42
+    - uses: ./ci-node/action.yaml
       if: ${{ inputs.run_build_runtime == 'node' }}
       with:
         run_npm_install: ${{ inputs.run_npm_install }}
