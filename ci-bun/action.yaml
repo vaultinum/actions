@@ -42,7 +42,20 @@ runs:
       working-directory: ${{ inputs.working-directory }}
       if: ${{ inputs.run_tests == 'true' }}
       shell: bash
-      run: bun test --coverage --coverage-reporter=lcov
+      run: |
+        SETUP_FILE=""
+        for f in test-setup.ts test/setup.ts src/test-setup.ts; do
+          if [ -f "$f" ]; then
+            SETUP_FILE="$f"
+            break
+          fi
+        done
+        if [ -n "$SETUP_FILE" ]; then
+          echo "Found setup file: $SETUP_FILE"
+          bun test --preload "$SETUP_FILE" --coverage --coverage-reporter=lcov
+        else
+          bun test --coverage --coverage-reporter=lcov
+        fi
     - name: Upload code coverage results
       if: ${{ inputs.run_tests == 'true' }}
       uses: actions/upload-artifact@v4
