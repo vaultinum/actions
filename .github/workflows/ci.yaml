@@ -74,7 +74,7 @@ jobs:
         if: ${{ inputs.run_build_runtime == 'bun' }}
         uses: oven-sh/setup-bun@v2
       - name: Trigger ci
-        uses: ./ci/action.yaml
+        uses: vaultinum/actions/ci@feat/bun-load-test-setup-file
         with:
           run_npm_install: ${{ inputs.run_npm_install }}
           run_eslint: ${{ inputs.run_eslint }}
