@@ -48,6 +48,7 @@ runs:
           echo "Found setup file: $SETUP_FILE"
           bun test --preload "$SETUP_FILE" --coverage --coverage-reporter=lcov
         else
+          echo "No setup file found, running tests without preload"
           bun test --coverage --coverage-reporter=lcov
         fi
     - name: Upload code coverage results
