@@ -43,8 +43,8 @@ runs:
       if: ${{ inputs.run_tests == 'true' }}
       shell: bash
       run: |
-        SETUP_FILE="src/test-setup.ts"
-        if [ -f "${{ inputs.working-directory }}/$SETUP_FILE" ]; then
+        SETUP_FILE="${{ inputs.working-directory }}/src/test-setup.ts"
+        if [ -f "$SETUP_FILE" ]; then
           echo "Found setup file: $SETUP_FILE"
           bun test --preload "$SETUP_FILE" --coverage --coverage-reporter=lcov
         else
