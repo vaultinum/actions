@@ -1,4 +1,4 @@
-name: Setup Node and publish snapshot
+name: Setup Node or Bun and publish snapshot
 
 on:
     workflow_call:
@@ -12,6 +12,10 @@ on:
             run_build:
                 default: true
                 type: boolean
+            run_build_runtime:
+                type: string
+                description: "The runtime to use for the build. Can be 'node' or 'bun'. Default is 'node'."
+                default: "node"
             run_tests:
                 default: false
                 type: boolean
@@ -67,7 +71,7 @@ jobs:
             - name: Generate suffix
               if: ${{ inputs.snapshot-suffix == '' }}
               id: generate-suffix
-              uses: vaultinum/actions/generate-suffix@v30
+              uses: vaultinum/actions/generate-suffix@v42
     publish-snapshot:
         needs: generate-snapshot-suffix
         runs-on: ${{ inputs.runs-on }}
@@ -85,35 +89,37 @@ jobs:
         steps:
             - name: Checkout Current Repository
               uses: actions/checkout@v4
-            - name: Setup Node
+            - name: Setup Node and npm registry
               uses: actions/setup-node@v4
               with:
                   node-version: 22.21.0
                   registry-url: "https://npm.pkg.github.com/"
+            - name: Setup Bun
+              if: ${{ inputs.run_build_runtime == 'bun' }}
+              uses: oven-sh/setup-bun@v2
             - name: Trigger ci
-              uses: vaultinum/actions/ci@v30
+              uses: vaultinum/actions/ci@v42
               with:
+                  run_build_runtime: ${{ inputs.run_build_runtime }}
                   run_npm_install: ${{ inputs.run_npm_install }}
                   run_eslint: ${{ inputs.run_eslint }}
                   run_build: ${{ inputs.run_build }}
                   run_tests: ${{ inputs.run_tests }}
                   brand: ${{ inputs.brand }}
                   working-directory: ${{ inputs.working-directory }}
-            - name: Update snapshot version
-              if: ${{ inputs.brand == '' }}
+            - name: Update snapshot version with Node
               working-directory: ${{ inputs.working-directory }}
               run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
               env:
-                  PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}
-            - name: Update snapshot version for brand
-              if: ${{ inputs.brand != '' }}
-              working-directory: ${{ inputs.working-directory }}
-              run: npm version prerelease --no-git-tag-version --preid=$PRE_ID
-              env:
-                  PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}-${{ inputs.brand }}
-            - name: Publish snapshot
+                  PRE_ID: SNAPSHOT-${{ inputs.snapshot-suffix || needs.generate-snapshot-suffix.outputs.snapshot-suffix }}${{ inputs.brand != '' && format('-{0}', inputs.brand) || '' }}
+            - name: Publish snapshot with Node
+              if: ${{ inputs.run_build_runtime == 'node' }}
               working-directory: ${{ inputs.working-directory }}
               run: npm publish --tag=snapshot
+            - name: Publish snapshot with Bun
+              if: ${{ inputs.run_build_runtime == 'bun' }}
+              working-directory: ${{ inputs.working-directory }}
+              run: bun publish --tag snapshot
             - name: Find package info comment
               uses: peter-evans/find-comment@v2
               id: find-comment
