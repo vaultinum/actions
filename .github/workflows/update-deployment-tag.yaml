@@ -1,0 +1,122 @@
+name: Update deployment tag
+
+on:
+    workflow_call:
+        inputs:
+            version:
+                required: true
+                type: string
+                description: "Version to tag"
+            environment:
+                required: true
+                type: string
+                description: "Target environment (dev, staging, prod)"
+        outputs:
+            previous_version:
+                description: "The version previously deployed to this environment"
+                value: ${{ jobs.update-tag.outputs.previous_version }}
+        secrets:
+            GH_TOKEN:
+                required: true
+
+jobs:
+    update-tag:
+        name: Update ${{ inputs.environment }} tag
+        runs-on: ubuntu-latest
+        timeout-minutes: 5
+        outputs:
+            previous_version: ${{ steps.update.outputs.previous_version }}
+        steps:
+            - name: Update environment tag
+              id: update
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.GH_TOKEN }}
+                  script: |
+                      const version = "${{ inputs.version }}";
+                      const environment = "${{ inputs.environment }}";
+                      const tagName = version.startsWith("v") ? version : `v${version}`;
+
+                      let previousVersion = "0.0.0";
+                      try {
+                        const { data: envTag } = await github.rest.git.getRef({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          ref: `tags/${environment}`
+                        });
+
+                        const currentEnvSha = envTag.object.sha;
+                        console.log(`Current ${environment} tag points to SHA: ${currentEnvSha}`);
+
+                        let page = 1;
+                        let matchingVersionTag = null;
+                        while (!matchingVersionTag) {
+                          const { data: tags } = await github.rest.repos.listTags({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            per_page: 100,
+                            page
+                          });
+                          if (tags.length === 0) break;
+                          matchingVersionTag = tags.find(tag => tag.name.startsWith("v") && tag.commit.sha === currentEnvSha);
+                          if (tags.length < 100) break;
+                          page++;
+                        }
+
+                        if (matchingVersionTag) {
+                          previousVersion = matchingVersionTag.name.replace("v", "");
+                          console.log(`Previous ${environment} version: ${matchingVersionTag.name}`);
+                        } else {
+                          console.log(`No version tag found for current ${environment} SHA, using fallback`);
+                        }
+                      } catch (error) {
+                        console.log(`No existing ${environment} tag found`);
+                      }
+
+                      core.setOutput("previous_version", previousVersion);
+
+                      try {
+                        const { data: releaseRef } = await github.rest.git.getRef({
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          ref: `tags/${tagName}`
+                        });
+
+                        let commitSha = releaseRef.object.sha;
+
+                        // if it's an annotated tag, get the commit SHA from the tag object
+                        if (releaseRef.object.type === "tag") {
+                          const { data: tagObject } = await github.rest.git.getTag({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            tag_sha: releaseRef.object.sha
+                          });
+                          commitSha = tagObject.object.sha;
+                        }
+
+                        console.log(`Moving ${environment} tag to: ${tagName} (${commitSha})`);
+
+                        try {
+                          await github.rest.git.updateRef({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            ref: `tags/${environment}`,
+                            sha: commitSha,
+                            force: true
+                          });
+                          console.log(`Updated ${environment} tag`);
+                        } catch (updateError) {
+                          await github.rest.git.createRef({
+                            owner: context.repo.owner,
+                            repo: context.repo.repo,
+                            ref: `refs/tags/${environment}`,
+                            sha: commitSha
+                          });
+                          console.log(`Created ${environment} tag`);
+                        }
+
+                        console.log(`Successfully tagged ${environment} → ${tagName}`);
+                        console.log(`Deployment: v${previousVersion} → ${tagName}`);
+                      } catch (error) {
+                        core.setFailed(`Failed to update ${environment} tag: ${error.message}`);
+                      }
