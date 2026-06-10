@@ -1,0 +1,234 @@
+name: Release - Rust
+
+on:
+    workflow_call:
+        inputs:
+            binary_name:
+                type: string
+                required: true
+                description: "Base binary name matching the Cargo package name"
+            version:
+                type: string
+                default: ""
+                description: "Release version tag (e.g. v1.2.3). Leave blank to use the version from Cargo.toml."
+            run_tests:
+                type: boolean
+                default: true
+                description: "Run cargo test before version bump (Run A)"
+            test_features:
+                type: string
+                default: ""
+                description: "Cargo features to enable during cargo test"
+            extra_feature:
+                type: string
+                default: ""
+                description: "Feature flag for a second build variant per platform. Empty = no extra variant."
+            timeout-minutes:
+                type: number
+                default: 30
+        outputs:
+            version:
+                description: "Released version tag"
+                value: ${{ jobs.check-version.outputs.version }}
+        secrets:
+            NPM_PACKAGE_ACCESS:
+                required: true
+            LAUNCHER_TOKEN:
+                required: false
+
+concurrency:
+    group: release
+    cancel-in-progress: false
+
+permissions:
+    contents: write
+    pull-requests: read
+
+jobs:
+    # ── Run A: regular feature push ────────────────────────────────────────────
+    # Runs on regular commits to main. Tests and a build check gate the version
+    # bump; if either fails, no release commit is pushed.
+
+    pre-release-check:
+        name: Pre-release Check
+        runs-on: ubuntu-latest
+        if: >-
+            github.event_name == 'push' &&
+            !startsWith(github.event.head_commit.message, 'chore: release')
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install Rust stable
+              uses: dtolnay/rust-toolchain@stable
+            - name: Cache Cargo
+              uses: Swatinem/rust-cache@v2
+            - name: Run tests
+              if: ${{ inputs.run_tests == true }}
+              shell: bash
+              run: |
+                  FEATURES="${{ inputs.test_features }}"
+                  if [ -n "$FEATURES" ]; then
+                      cargo test --features "$FEATURES"
+                  else
+                      cargo test
+                  fi
+            - name: Build check
+              shell: bash
+              run: cargo build --release
+
+    version-bump:
+        name: Bump Version
+        runs-on: ubuntu-latest
+        needs: pre-release-check
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+                  token: ${{ secrets.NPM_PACKAGE_ACCESS }}
+            - name: Install Rust stable
+              uses: dtolnay/rust-toolchain@stable
+            - name: Cache Cargo
+              uses: Swatinem/rust-cache@v2
+            - name: Bump version via release-plz
+              uses: release-plz/action@v0.5
+              with:
+                  command: update
+              env:
+                  GITHUB_TOKEN: ${{ secrets.NPM_PACKAGE_ACCESS }}
+
+    # ── Run B: release commit or workflow_dispatch ─────────────────────────────
+    # Runs when release-plz commit a "chore: release" to main,
+    # or when triggered manually via workflow_dispatch.
+
+    matrix-prep:
+        name: Prepare Build Matrix
+        runs-on: ubuntu-latest
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, 'chore: release')
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            - name: Generate matrix
+              id: set-matrix
+              shell: bash
+              run: |
+                  EXTRA="${{ inputs.extra_feature }}"
+
+                  BASE=$(jq -n '
+                      [
+                          {"os":"ubuntu-latest","features":"","binary_suffix":"-linux","exe_ext":""},
+                          {"os":"windows-latest","features":"","binary_suffix":"-windows","exe_ext":".exe"},
+                          {"os":"macos-latest","features":"","binary_suffix":"-macos","exe_ext":""}
+                      ]
+                  ')
+
+                  if [ -n "$EXTRA" ]; then
+                      EXTRA_ENTRIES=$(jq -n --arg e "$EXTRA" '
+                          [
+                              {"os":"ubuntu-latest","features":$e,"binary_suffix":("-linux-"+$e),"exe_ext":""},
+                              {"os":"windows-latest","features":$e,"binary_suffix":("-windows-"+$e),"exe_ext":".exe"},
+                              {"os":"macos-latest","features":$e,"binary_suffix":("-macos-"+$e),"exe_ext":""}
+                          ]
+                      ')
+                      MATRIX=$(printf '%s\n%s' "$BASE" "$EXTRA_ENTRIES" | jq -s 'add')
+                  else
+                      MATRIX="$BASE"
+                  fi
+
+                  echo "matrix=$(echo "$MATRIX" | jq -c .)" >> "$GITHUB_OUTPUT"
+
+    check-version:
+        name: Resolve Version
+        runs-on: ubuntu-latest
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, 'chore: release')
+        outputs:
+            version: ${{ steps.resolve.outputs.version }}
+            should_release: ${{ steps.check.outputs.should_release }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Resolve version
+              id: resolve
+              shell: bash
+              run: |
+                  INPUT="${{ inputs.version }}"
+                  if [ -n "$INPUT" ]; then
+                      VERSION="$INPUT"
+                  else
+                      VERSION="v$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
+                  fi
+                  echo "Resolved version: $VERSION"
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            - name: Check if tag already exists
+              id: check
+              shell: bash
+              run: |
+                  VERSION="${{ steps.resolve.outputs.version }}"
+                  if git ls-remote --tags origin "refs/tags/$VERSION" | grep -q "$VERSION"; then
+                      echo "Tag $VERSION already exists, skipping release"
+                      echo "should_release=false" >> "$GITHUB_OUTPUT"
+                  else
+                      echo "Tag $VERSION does not exist, proceeding with release"
+                      echo "should_release=true" >> "$GITHUB_OUTPUT"
+                  fi
+
+    build:
+        name: Build [${{ matrix.binary_suffix }}]
+        needs: [matrix-prep, check-version]
+        if: needs.check-version.outputs.should_release == 'true'
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: ${{ inputs.timeout-minutes }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include: ${{ fromJson(needs.matrix-prep.outputs.matrix) }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install Rust stable
+              uses: dtolnay/rust-toolchain@stable
+            - name: Cache Cargo
+              uses: Swatinem/rust-cache@v2
+            - name: Build
+              shell: bash
+              env:
+                  LAUNCHER_TOKEN: ${{ secrets.LAUNCHER_TOKEN }}
+              run: |
+                  FEATURES="${{ matrix.features }}"
+                  if [ -n "$FEATURES" ]; then
+                      cargo build --release --features "$FEATURES"
+                  else
+                      cargo build --release
+                  fi
+            - name: Rename binary
+              shell: bash
+              run: |
+                  mv "target/release/${{ inputs.binary_name }}${{ matrix.exe_ext }}" \
+                     "target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ inputs.binary_name }}${{ matrix.binary_suffix }}
+                  path: target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}
+
+    release:
+        name: Create GitHub Release
+        needs: [check-version, build]
+        if: needs.check-version.outputs.should_release == 'true'
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts/
+                  merge-multiple: true
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ needs.check-version.outputs.version }}
+                  name: Release ${{ needs.check-version.outputs.version }}
+                  generate_release_notes: true
+                  files: artifacts/*
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
