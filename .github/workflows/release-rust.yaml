@@ -37,7 +37,7 @@ on:
                 required: false
 
 concurrency:
-    group: release
+    group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
     cancel-in-progress: false
 
 permissions:
