@@ -1,0 +1,51 @@
+name: CI - Rust
+
+on:
+    workflow_call:
+        inputs:
+            run_fmt:
+                default: false
+                type: boolean
+            run_clippy:
+                default: true
+                type: boolean
+            run_build:
+                default: true
+                type: boolean
+            run_tests:
+                default: false
+                type: boolean
+            test_features:
+                default: ""
+                type: string
+                description: "Cargo features to enable during cargo test"
+            working-directory:
+                type: string
+                description: The working directory for the job
+                default: "."
+        secrets:
+            GH_TOKEN:
+                required: true
+
+concurrency:
+    group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        timeout-minutes: 20
+        steps:
+            - name: Checkout Current Repository
+              uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.pull_request.head.sha }}
+            - name: Trigger CI
+              uses: vaultinum/actions/ci-rust@main
+              with:
+                  run_fmt: ${{ inputs.run_fmt }}
+                  run_clippy: ${{ inputs.run_clippy }}
+                  run_build: ${{ inputs.run_build }}
+                  run_tests: ${{ inputs.run_tests }}
+                  test_features: ${{ inputs.test_features }}
+                  working-directory: ${{ inputs.working-directory }}

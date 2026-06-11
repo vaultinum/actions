@@ -1,0 +1,66 @@
+name: CI - Rust
+description: Run fmt check, clippy, build and tests for Rust projects
+author: Vaultinum
+inputs:
+    run_fmt:
+        default: false
+        type: boolean
+        description: "Run cargo fmt --check"
+    run_clippy:
+        default: true
+        type: boolean
+        description: "Run cargo clippy -- -D warnings"
+    run_build:
+        default: true
+        type: boolean
+        description: "Run cargo build"
+    run_tests:
+        default: false
+        type: boolean
+        description: "Run cargo test"
+    test_features:
+        type: string
+        default: ""
+        description: "Cargo features to enable during cargo test (e.g. 'docker')"
+    working-directory:
+        type: string
+        description: "The working directory for the job"
+        default: "."
+
+runs:
+    using: composite
+    steps:
+        - name: Install Rust stable
+          uses: dtolnay/rust-toolchain@stable
+          with:
+              components: rustfmt,clippy
+        - name: Cache Cargo
+          uses: Swatinem/rust-cache@v2
+          with:
+              workspaces: ${{ inputs.working-directory }}
+        - name: Check formatting
+          if: ${{ inputs.run_fmt == 'true' }}
+          working-directory: ${{ inputs.working-directory }}
+          shell: bash
+          run: cargo fmt --check
+        - name: Clippy
+          if: ${{ inputs.run_clippy == 'true' }}
+          working-directory: ${{ inputs.working-directory }}
+          shell: bash
+          run: cargo clippy -- -D warnings
+        - name: Build
+          if: ${{ inputs.run_build == 'true' }}
+          working-directory: ${{ inputs.working-directory }}
+          shell: bash
+          run: cargo build
+        - name: Run tests
+          if: ${{ inputs.run_tests == 'true' }}
+          working-directory: ${{ inputs.working-directory }}
+          shell: bash
+          run: |
+              FEATURES="${{ inputs.test_features }}"
+              if [ -n "$FEATURES" ]; then
+                  cargo test --features "$FEATURES"
+              else
+                  cargo test
+              fi
