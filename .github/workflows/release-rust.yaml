@@ -83,12 +83,13 @@ jobs:
                   fetch-depth: 0
                   ref: test-ci
                   token: ${{ secrets.NPM_PACKAGE_ACCESS }}
-            - name: Bump version via release-plz
-              uses: release-plz/action@v0.5
+            - name: Install release-plz
+              uses: taiki-e/install-action@v2
               with:
-                  command: update
-              env:
-                  GITHUB_TOKEN: ${{ secrets.NPM_PACKAGE_ACCESS }}
+                  tool: release-plz
+            - name: Bump version via release-plz
+              shell: bash
+              run: release-plz update
             - name: Commit and push version bump
               shell: bash
               run: |
