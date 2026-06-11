@@ -41,7 +41,7 @@ jobs:
               with:
                   ref: ${{ github.event.pull_request.head.sha }}
             - name: Trigger CI
-              uses: vaultinum/actions/ci-rust@feat/add-rust-release-workflow
+              uses: vaultinum/actions/ci-rust@main
               with:
                   run_fmt: ${{ inputs.run_fmt }}
                   run_clippy: ${{ inputs.run_clippy }}
