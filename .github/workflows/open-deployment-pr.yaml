@@ -27,7 +27,7 @@ jobs:
   open-deployment-pr:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Create PR with GitHub CLI
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

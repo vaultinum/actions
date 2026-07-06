@@ -40,12 +40,12 @@ jobs:
         env:
             NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   ref: develop
-            - uses: fregante/setup-git-user@v1
-            - uses: actions/setup-node@v4
+            - uses: fregante/setup-git-user@v2
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22.21.0
             - name: Install dependencies
@@ -59,7 +59,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - name: Merge develop -> staging
               uses: devmasx/merge-branch@master
               with:
@@ -73,7 +73,7 @@ jobs:
         runs-on: ubuntu-latest
         timeout-minutes: 5
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   ref: staging

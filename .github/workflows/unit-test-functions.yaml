@@ -27,8 +27,8 @@ jobs:
             VAULTINUM_OWNER_ACCOUNT_ID: ${{ inputs.vaultinum_owner_account_id }}
         steps:
             - name: Checkout Repo
-              uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+              uses: actions/checkout@v5
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22.21.0
             - uses: actions/setup-java@v5
@@ -60,8 +60,8 @@ jobs:
             STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
         steps:
             - name: Checkout Repo
-              uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+              uses: actions/checkout@v5
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22.21.0
             - uses: actions/setup-java@v5
@@ -92,8 +92,8 @@ jobs:
             STRIPE_TEST_TOKEN: ${{ secrets.STRIPE_TEST_TOKEN }}
         steps:
             - name: Checkout Repo
-              uses: actions/checkout@v4
-            - uses: actions/setup-node@v4
+              uses: actions/checkout@v5
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22.21.0
             - uses: actions/setup-java@v5
