@@ -63,12 +63,12 @@ jobs:
                   EXISTING_STACKS=$(curl --insecure --request GET "$BASE_URL/api/stacks" \
                       --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}")
 
-                  ENDPOINT_INFO=$(curl --insecure --request GET "$BASE_URL/api/endpoints/$ENDPOINT_ID" \
+                  ENDPOINT_INFO=$(curl --insecure --request GET "$BASE_URL/api/endpoints/$ENDPOINT_ID/docker/info" \
                       --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}")
 
                   STACK_INFO=$(echo "$EXISTING_STACKS" | jq -r '.[] | select(.Name=="${{ inputs.stack_name }}")')
                   STACK_ID=$(echo "$STACK_INFO" | jq -r '.Id')
-                  SWARM_ID=$(echo $ENDPOINT_INFO | jq -r '.Snapshots[].DockerSnapshotRaw.Info.Swarm.Cluster.ID')
+                  SWARM_ID=$(echo $ENDPOINT_INFO | jq -r '.Swarm.Cluster.ID')
 
                   # Replace the image name in the docker-compose.yml file and convert the file content to a valid JSON string
                   STACK_FILE_CONTENT=$(cat docker-compose.yml | sed "s|image:.*|image: ${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}|g" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
