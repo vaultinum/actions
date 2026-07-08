@@ -21,7 +21,7 @@ jobs:
             changes_detected: ${{ steps.changes_detected.outputs.changes_detected }}
         steps:
             - id: changes_detected
-              uses: vaultinum/actions/check-changes@v30
+              uses: vaultinum/actions/check-changes@v47
               with:
                   pattern: ^src/|^\.storybook/
     chromatic-deployment:
@@ -32,10 +32,10 @@ jobs:
             NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
             NODE_OPTIONS: --max-old-space-size=8192
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
               with:
                   fetch-depth: 0
-            - uses: actions/setup-node@v4
+            - uses: actions/setup-node@v6
               with:
                   node-version: 22.21.0
                   registry-url: "https://npm.pkg.github.com/"

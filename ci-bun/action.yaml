@@ -45,7 +45,7 @@ runs:
       run: bun test --coverage --coverage-reporter=lcov
     - name: Upload code coverage results
       if: ${{ inputs.run_tests == 'true' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: code-coverage-report-${{ inputs.brand }}
         path: ${{ inputs.working-directory }}/coverage/lcov.info
