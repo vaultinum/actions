@@ -40,7 +40,7 @@ on:
                 required: true
 
 concurrency:
-    group: deploy-stack-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}-${{ inputs.deploy_environment_tag || inputs.deploy_environment }}
+    group: deploy-stack-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ inputs.image_name }}-${{ inputs.stack_name }}-${{ inputs.deploy_environment_tag || inputs.deploy_environment }}
     cancel-in-progress: true
 
 jobs:
@@ -169,7 +169,6 @@ jobs:
                       \"name\": \"DEPLOY_ENVIRONMENT\",
                       \"value\": \"${{ inputs.deploy_environment }}\"
                   }"
-
 
                   # Remove the trailing comma from the environment variables list to make it a valid JSON array
                   if [[ $ENV_VARS == *, ]]; then
