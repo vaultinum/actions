@@ -247,20 +247,27 @@ jobs:
               run: |
                   mv "target/release/${{ inputs.binary_name }}${{ matrix.exe_ext }}" \
                      "target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
+            - name: Check macOS signing secret
+              if: matrix.os == 'macos-latest'
+              id: macos_signing
+              shell: bash
+              env:
+                  MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+              run: echo "enabled=$([ -n "$MACOS_CERT_P12" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
             - name: Import macOS signing certificate
-              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              if: matrix.os == 'macos-latest' && steps.macos_signing.outputs.enabled == 'true'
               uses: apple-actions/import-codesign-certs@v7
               with:
                   p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
                   p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
             - name: Sign macOS binary
-              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              if: matrix.os == 'macos-latest' && steps.macos_signing.outputs.enabled == 'true'
               shell: bash
               run: |
                   codesign --sign "Developer ID Application" --options runtime --timestamp \
                       "target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
             - name: Notarize macOS binary
-              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              if: matrix.os == 'macos-latest' && steps.macos_signing.outputs.enabled == 'true'
               shell: bash
               env:
                   APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
