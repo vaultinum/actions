@@ -131,6 +131,17 @@ jobs:
                   BASE_URL="${{ steps.endpoint.outputs.base_url }}"
                   ENDPOINT_ID="${{ steps.endpoint.outputs.endpoint_id }}"
 
+                  fail_on_error() {
+                      if [ "$1" -lt 200 ] || [ "$1" -ge 300 ]; then
+                          echo "# :red_circle: Stack deployment failed (HTTP $1)" >> $GITHUB_STEP_SUMMARY
+                          echo '```json' >> $GITHUB_STEP_SUMMARY
+                          cat response.json >> $GITHUB_STEP_SUMMARY
+                          echo '```' >> $GITHUB_STEP_SUMMARY
+                          cat response.json
+                          exit 1
+                      fi
+                  }
+
                   EXISTING_STACKS=$(curl --insecure --request GET "$BASE_URL/api/stacks" \
                       --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}")
 
@@ -187,11 +198,11 @@ jobs:
                   }
                   EOF
 
-                      curl --insecure --request POST "$BASE_URL/api/stacks/create/swarm/string?endpointId=$ENDPOINT_ID" \
+                      HTTP_STATUS=$(curl --insecure --silent --output response.json --write-out "%{http_code}" --request POST "$BASE_URL/api/stacks/create/swarm/string?endpointId=$ENDPOINT_ID" \
                           --header "Content-Type: application/json" \
                           --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
-                          --data "@request.json" \
-                          --output response.json
+                          --data "@request.json")
+                      fail_on_error "$HTTP_STATUS"
                   else
                       echo "Stack found with ID $STACK_ID. Updating the stack."
 
@@ -202,11 +213,11 @@ jobs:
                   }
                   EOF
 
-                      curl --insecure --request PUT "$BASE_URL/api/stacks/$STACK_ID?endpointId=$ENDPOINT_ID" \
+                      HTTP_STATUS=$(curl --insecure --silent --output response.json --write-out "%{http_code}" --request PUT "$BASE_URL/api/stacks/$STACK_ID?endpointId=$ENDPOINT_ID" \
                           --header "Content-Type: application/json" \
                           --header "X-API-KEY: ${{ secrets.PORTAINER_API_KEY }}" \
-                          --data "@request.json" \
-                          --output response.json
+                          --data "@request.json")
+                      fail_on_error "$HTTP_STATUS"
 
                       echo "Stack updated successfully."
                   fi
@@ -216,13 +227,21 @@ jobs:
               run: |
                   sleep 10
 
+                  MAX_ATTEMPTS=36
+                  ATTEMPT=0
                   STOPPED_COUNT=0
                   while [ $STOPPED_COUNT -eq 0 ]; do
+                      ATTEMPT=$((ATTEMPT + 1))
+                      if [ $ATTEMPT -gt $MAX_ATTEMPTS ]; then
+                          echo "# :red_circle: Timed out waiting for old containers to stop after stack update" >> $GITHUB_STEP_SUMMARY
+                          exit 1
+                      fi
+
                       STOPPED_COUNT=$(curl --insecure --get '${{ steps.endpoint.outputs.docker_url }}/containers/json' \
                           --data-urlencode 'filters={ "status": [ "exited" ], "label": [ "com.docker.stack.namespace=${{ inputs.stack_name }}" ] }' \
                           --header 'X-API-Key: ${{ secrets.PORTAINER_API_KEY }}' | jq '[.[]] | length')
 
-                      echo "Stopped containers count: $STOPPED_COUNT"
+                      echo "Stopped containers count: $STOPPED_COUNT (attempt $ATTEMPT/$MAX_ATTEMPTS)"
 
                       if [ $STOPPED_COUNT -gt 0 ]; then
                           echo "Container stopped!"
