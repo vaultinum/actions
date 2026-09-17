@@ -26,6 +26,30 @@ on:
             timeout-minutes:
                 type: number
                 default: 30
+            azure_client_id:
+                type: string
+                default: ""
+                description: "Azure AD App Registration client ID for OIDC (Windows Authenticode signing via Azure Artifact Signing). Empty = skip Windows signing."
+            azure_tenant_id:
+                type: string
+                default: ""
+                description: "Azure AD tenant ID for OIDC signing auth."
+            azure_subscription_id:
+                type: string
+                default: ""
+                description: "Azure subscription ID containing the Artifact Signing account."
+            azure_signing_account_name:
+                type: string
+                default: ""
+                description: "Azure Artifact Signing account name."
+            azure_certificate_profile_name:
+                type: string
+                default: ""
+                description: "Azure Artifact Signing certificate profile name."
+            azure_signing_endpoint:
+                type: string
+                default: ""
+                description: "Azure Artifact Signing account endpoint URI (region-specific, e.g. https://weu.codesigning.azure.net/)."
         outputs:
             version:
                 description: "Released version tag"
@@ -36,6 +60,16 @@ on:
             NPM_PACKAGE_ACCESS:
                 required: true
             LAUNCHER_TOKEN:
+                required: false
+            MACOS_CERT_P12:
+                required: false
+            MACOS_CERT_PASSWORD:
+                required: false
+            APPLE_API_KEY:
+                required: false
+            APPLE_API_KEY_ID:
+                required: false
+            APPLE_API_ISSUER:
                 required: false
 
 concurrency:
@@ -184,6 +218,9 @@ jobs:
         if: needs.check-version.outputs.should_release == 'true'
         runs-on: ${{ matrix.os }}
         timeout-minutes: ${{ inputs.timeout-minutes }}
+        permissions:
+            id-token: write
+            contents: read
         strategy:
             fail-fast: false
             matrix:
@@ -210,6 +247,55 @@ jobs:
               run: |
                   mv "target/release/${{ inputs.binary_name }}${{ matrix.exe_ext }}" \
                      "target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
+            - name: Import macOS signing certificate
+              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              uses: apple-actions/import-codesign-certs@v7
+              with:
+                  p12-file-base64: ${{ secrets.MACOS_CERT_P12 }}
+                  p12-password: ${{ secrets.MACOS_CERT_PASSWORD }}
+            - name: Sign macOS binary
+              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              shell: bash
+              run: |
+                  codesign --sign "Developer ID Application" --options runtime --timestamp \
+                      "target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
+            - name: Notarize macOS binary
+              if: matrix.os == 'macos-latest' && secrets.MACOS_CERT_P12 != ''
+              shell: bash
+              env:
+                  APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+                  APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+                  APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+              run: |
+                  BIN="target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}"
+                  ZIP="target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}.zip"
+                  mkdir -p /tmp/notary-key
+                  echo "$APPLE_API_KEY" > /tmp/notary-key/AuthKey.p8
+                  ditto -c -k --keepParent "$BIN" "$ZIP"
+                  xcrun notarytool submit "$ZIP" \
+                      --key /tmp/notary-key/AuthKey.p8 \
+                      --key-id "$APPLE_API_KEY_ID" \
+                      --issuer "$APPLE_API_ISSUER" \
+                      --wait
+                  rm -rf /tmp/notary-key "$ZIP"
+            - name: Azure login (Windows signing)
+              if: matrix.os == 'windows-latest' && inputs.azure_client_id != ''
+              uses: azure/login@v3
+              with:
+                  client-id: ${{ inputs.azure_client_id }}
+                  tenant-id: ${{ inputs.azure_tenant_id }}
+                  subscription-id: ${{ inputs.azure_subscription_id }}
+            - name: Sign Windows binary
+              if: matrix.os == 'windows-latest' && inputs.azure_client_id != ''
+              uses: azure/artifact-signing-action@v2
+              with:
+                  endpoint: ${{ inputs.azure_signing_endpoint }}
+                  signing-account-name: ${{ inputs.azure_signing_account_name }}
+                  certificate-profile-name: ${{ inputs.azure_certificate_profile_name }}
+                  files: ${{ github.workspace }}/target/release/${{ inputs.binary_name }}${{ matrix.binary_suffix }}${{ matrix.exe_ext }}
+                  file-digest: SHA256
+                  timestamp-rfc3161: http://timestamp.acs.microsoft.com
+                  timestamp-digest: SHA256
             - name: Upload artifact
               uses: actions/upload-artifact@v7
               with:
