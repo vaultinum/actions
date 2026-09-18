@@ -56,7 +56,7 @@ jobs:
             - name: Cache node modules
               if: steps.changed-files-specific.outputs.any_changed == 'true'
               id: cache-npm
-              uses: actions/cache@v3
+              uses: actions/cache@v4
               env:
                   cache-name: cache-node-modules
               with:
@@ -115,6 +115,7 @@ jobs:
         if: ${{ inputs.run_deploy && inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
         needs: [dependencies, tests, build]
         runs-on: self-hosted
+        environment: ${{ inputs.functions_environment }}
         steps:
             - name: Deploy
               uses: vaultinum/actions/deploy-functions@v47
@@ -127,6 +128,7 @@ jobs:
         if: ${{ inputs.run_deploy && inputs.run_tests != true && needs.dependencies.outputs.changed-files-specific == 'true' }}
         needs: [build, dependencies]
         runs-on: self-hosted
+        environment: ${{ inputs.functions_environment }}
         steps:
             - name: Deploy
               uses: vaultinum/actions/deploy-functions@v47
