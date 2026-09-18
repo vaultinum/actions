@@ -26,6 +26,14 @@ on:
             timeout-minutes:
                 type: number
                 default: 30
+            release_commit_prefix:
+                type: string
+                default: "chore: release"
+                description: "Prefix used both to create and to detect a release-plz version bump commit. Single source of truth — change here, not in each condition."
+            publish_release:
+                type: boolean
+                default: false
+                description: "Create the public GitHub Release once build/sign/notarize-submit finishes. Set to false for a staging build (build + sign + submit for notarization only, no publish)."
             azure_client_id:
                 type: string
                 default: ""
@@ -86,7 +94,7 @@ jobs:
         runs-on: ubuntu-latest
         if: >-
             github.event_name == 'push' &&
-            !startsWith(github.event.head_commit.message, 'chore: release')
+            !startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
         steps:
             - uses: actions/checkout@v5
             - name: Install Rust stable
@@ -131,7 +139,7 @@ jobs:
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add -A
                   VERSION="v$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
-                  git diff --staged --quiet || git commit -m "chore: release $VERSION"
+                  git diff --staged --quiet || git commit -m "${{ inputs.release_commit_prefix }} $VERSION"
                   git push
 
     # ── Run B: manual promotion only ────────────────────────────────────────────
@@ -141,7 +149,9 @@ jobs:
     matrix-prep:
         name: Prepare Build Matrix
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
@@ -177,7 +187,9 @@ jobs:
     check-version:
         name: Resolve Version
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
@@ -265,8 +277,7 @@ jobs:
                   xcrun notarytool submit "$ZIP" \
                       --key /tmp/notary-key/AuthKey.p8 \
                       --key-id "$APPLE_API_KEY_ID" \
-                      --issuer "$APPLE_API_ISSUER" \
-                      --wait
+                      --issuer "$APPLE_API_ISSUER"
                   rm -rf /tmp/notary-key "$ZIP"
             - name: Azure login (Windows signing)
               if: matrix.os == 'windows-latest' && inputs.azure_client_id != ''
@@ -295,6 +306,7 @@ jobs:
     release:
         name: Create GitHub Release
         needs: [check-version, build]
+        if: inputs.publish_release
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
