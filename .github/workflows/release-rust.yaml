@@ -26,6 +26,14 @@ on:
             timeout-minutes:
                 type: number
                 default: 30
+            publish_release:
+                type: boolean
+                default: true
+                description: "Create the public GitHub Release once build/sign/notarize-submit finishes. Set to false for a staging build (build + sign + submit for notarization only, no publish)."
+            environment:
+                type: string
+                default: ""
+                description: "Also publish a stable-tagged, prerelease-marked release for this deployment environment (e.g. dev), separate from the versioned release. Empty = skip."
             azure_client_id:
                 type: string
                 default: ""
@@ -141,7 +149,9 @@ jobs:
     matrix-prep:
         name: Prepare Build Matrix
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, 'chore: release')
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
@@ -177,7 +187,9 @@ jobs:
     check-version:
         name: Resolve Version
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            startsWith(github.event.head_commit.message, 'chore: release')
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
@@ -265,8 +277,7 @@ jobs:
                   xcrun notarytool submit "$ZIP" \
                       --key /tmp/notary-key/AuthKey.p8 \
                       --key-id "$APPLE_API_KEY_ID" \
-                      --issuer "$APPLE_API_ISSUER" \
-                      --wait
+                      --issuer "$APPLE_API_ISSUER"
                   rm -rf /tmp/notary-key "$ZIP"
             - name: Azure login (Windows signing)
               if: matrix.os == 'windows-latest' && inputs.azure_client_id != ''
@@ -295,6 +306,7 @@ jobs:
     release:
         name: Create GitHub Release
         needs: [check-version, build]
+        if: inputs.publish_release || inputs.environment != ''
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
@@ -304,11 +316,24 @@ jobs:
                   path: artifacts/
                   merge-multiple: true
             - name: Create GitHub Release
+              if: inputs.publish_release
               uses: softprops/action-gh-release@v2
               with:
                   tag_name: ${{ needs.check-version.outputs.version }}
                   name: Release ${{ needs.check-version.outputs.version }}
                   generate_release_notes: true
+                  files: artifacts/*
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+            - name: Publish environment release
+              if: inputs.environment != ''
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ inputs.environment }}
+                  target_commitish: ${{ github.sha }}
+                  name: ${{ inputs.environment }}
+                  prerelease: true
+                  make_latest: false
                   files: artifacts/*
               env:
                   GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
