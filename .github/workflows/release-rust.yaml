@@ -189,6 +189,7 @@ jobs:
                   INPUT="${{ inputs.version }}"
                   if [ -n "$INPUT" ]; then
                       VERSION="$INPUT"
+                      [[ "$VERSION" == v* ]] || VERSION="v$VERSION"
                   else
                       VERSION="v$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
                   fi
