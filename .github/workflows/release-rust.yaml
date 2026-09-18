@@ -134,16 +134,14 @@ jobs:
                   git diff --staged --quiet || git commit -m "chore: release $VERSION"
                   git push
 
-    # ── Run B: release commit or workflow_dispatch ─────────────────────────────
-    # Runs when release-plz commit a "chore: release" to main,
-    # or when triggered manually via workflow_dispatch.
+    # ── Run B: manual promotion only ────────────────────────────────────────────
+    # Builds, signs and publishes the GitHub Release. Only runs via workflow_dispatch
+    # (e.g. from deploy-prod.yml) — never automatically.
 
     matrix-prep:
         name: Prepare Build Matrix
         runs-on: ubuntu-latest
-        if: >-
-            github.event_name == 'workflow_dispatch' ||
-            startsWith(github.event.head_commit.message, 'chore: release')
+        if: github.event_name == 'workflow_dispatch'
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
@@ -179,12 +177,9 @@ jobs:
     check-version:
         name: Resolve Version
         runs-on: ubuntu-latest
-        if: >-
-            github.event_name == 'workflow_dispatch' ||
-            startsWith(github.event.head_commit.message, 'chore: release')
+        if: github.event_name == 'workflow_dispatch'
         outputs:
             version: ${{ steps.resolve.outputs.version }}
-            should_release: ${{ steps.check.outputs.should_release }}
         steps:
             - uses: actions/checkout@v5
             - name: Resolve version
@@ -199,23 +194,10 @@ jobs:
                   fi
                   echo "Resolved version: $VERSION"
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-            - name: Check if tag already exists
-              id: check
-              shell: bash
-              run: |
-                  VERSION="${{ steps.resolve.outputs.version }}"
-                  if git ls-remote --tags origin "refs/tags/$VERSION" | grep -q "$VERSION"; then
-                      echo "Tag $VERSION already exists, skipping release"
-                      echo "should_release=false" >> "$GITHUB_OUTPUT"
-                  else
-                      echo "Tag $VERSION does not exist, proceeding with release"
-                      echo "should_release=true" >> "$GITHUB_OUTPUT"
-                  fi
 
     build:
         name: Build [${{ matrix.binary_suffix }}]
         needs: [matrix-prep, check-version]
-        if: needs.check-version.outputs.should_release == 'true'
         runs-on: ${{ matrix.os }}
         timeout-minutes: ${{ inputs.timeout-minutes }}
         permissions:
@@ -305,7 +287,6 @@ jobs:
     release:
         name: Create GitHub Release
         needs: [check-version, build]
-        if: needs.check-version.outputs.should_release == 'true'
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
