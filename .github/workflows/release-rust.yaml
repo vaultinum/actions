@@ -26,10 +26,6 @@ on:
             timeout-minutes:
                 type: number
                 default: 30
-            release_commit_prefix:
-                type: string
-                default: "chore: release"
-                description: "Prefix used both to create and to detect a release-plz version bump commit. Single source of truth — change here, not in each condition."
             publish_release:
                 type: boolean
                 default: false
@@ -85,16 +81,12 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    # ── Run A: regular feature push ────────────────────────────────────────────
-    # Runs on regular commits to main. Tests and a build check gate the version
-    # bump; if either fails, no release commit is pushed.
-
     pre-release-check:
         name: Pre-release Check
         runs-on: ubuntu-latest
         if: >-
             github.event_name == 'push' &&
-            !startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
+            github.ref_type == 'branch'
         steps:
             - uses: actions/checkout@v5
             - name: Install Rust stable
@@ -139,19 +131,21 @@ jobs:
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add -A
                   VERSION="v$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
-                  git diff --staged --quiet || git commit -m "${{ inputs.release_commit_prefix }} $VERSION"
-                  git push
-
-    # ── Run B: manual promotion only ────────────────────────────────────────────
-    # Builds, signs and publishes the GitHub Release. Only runs via workflow_dispatch
-    # (e.g. from deploy-prod.yml) — never automatically.
+                  if git diff --staged --quiet; then
+                      echo "Nothing to release"
+                  else
+                      git commit -m "chore: release $VERSION"
+                      git push
+                      git tag "$VERSION"
+                      git push origin "$VERSION"
+                  fi
 
     matrix-prep:
         name: Prepare Build Matrix
         runs-on: ubuntu-latest
         if: >-
             github.event_name == 'workflow_dispatch' ||
-            startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
+            github.ref_type == 'tag'
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
@@ -189,7 +183,7 @@ jobs:
         runs-on: ubuntu-latest
         if: >-
             github.event_name == 'workflow_dispatch' ||
-            startsWith(github.event.head_commit.message, inputs.release_commit_prefix)
+            github.ref_type == 'tag'
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
