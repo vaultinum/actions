@@ -141,6 +141,7 @@ jobs:
                   body: |
                       ```${{ inputs.brand }}
                       npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
+                      bun i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
                   edit-mode: replace
     sonarqube:
         if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
