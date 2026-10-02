@@ -26,6 +26,10 @@ on:
             timeout-minutes:
                 type: number
                 default: 30
+            publish_release:
+                type: boolean
+                default: false
+                description: "Create the public GitHub Release once build/sign/notarize-submit finishes. Set to false for a staging build (build + sign + submit for notarization only, no publish)."
             azure_client_id:
                 type: string
                 default: ""
@@ -77,16 +81,12 @@ concurrency:
     cancel-in-progress: false
 
 jobs:
-    # ── Run A: regular feature push ────────────────────────────────────────────
-    # Runs on regular commits to main. Tests and a build check gate the version
-    # bump; if either fails, no release commit is pushed.
-
     pre-release-check:
         name: Pre-release Check
         runs-on: ubuntu-latest
         if: >-
             github.event_name == 'push' &&
-            !startsWith(github.event.head_commit.message, 'chore: release')
+            github.ref_type == 'branch'
         steps:
             - uses: actions/checkout@v5
             - name: Install Rust stable
@@ -131,17 +131,21 @@ jobs:
                   git config user.email "github-actions[bot]@users.noreply.github.com"
                   git add -A
                   VERSION="v$(grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2)"
-                  git diff --staged --quiet || git commit -m "chore: release $VERSION"
-                  git push
-
-    # ── Run B: manual promotion only ────────────────────────────────────────────
-    # Builds, signs and publishes the GitHub Release. Only runs via workflow_dispatch
-    # (e.g. from deploy-prod.yml) — never automatically.
+                  if git diff --staged --quiet; then
+                      echo "Nothing to release"
+                  else
+                      git commit -m "chore: release $VERSION"
+                      git push
+                      git tag "$VERSION"
+                      git push origin "$VERSION"
+                  fi
 
     matrix-prep:
         name: Prepare Build Matrix
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            github.ref_type == 'tag'
         outputs:
             matrix: ${{ steps.set-matrix.outputs.matrix }}
         steps:
@@ -177,7 +181,9 @@ jobs:
     check-version:
         name: Resolve Version
         runs-on: ubuntu-latest
-        if: github.event_name == 'workflow_dispatch'
+        if: >-
+            github.event_name == 'workflow_dispatch' ||
+            github.ref_type == 'tag'
         outputs:
             version: ${{ steps.resolve.outputs.version }}
         steps:
@@ -265,8 +271,7 @@ jobs:
                   xcrun notarytool submit "$ZIP" \
                       --key /tmp/notary-key/AuthKey.p8 \
                       --key-id "$APPLE_API_KEY_ID" \
-                      --issuer "$APPLE_API_ISSUER" \
-                      --wait
+                      --issuer "$APPLE_API_ISSUER"
                   rm -rf /tmp/notary-key "$ZIP"
             - name: Azure login (Windows signing)
               if: matrix.os == 'windows-latest' && inputs.azure_client_id != ''
@@ -295,6 +300,7 @@ jobs:
     release:
         name: Create GitHub Release
         needs: [check-version, build]
+        if: inputs.publish_release
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v5
