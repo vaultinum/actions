@@ -142,6 +142,7 @@ jobs:
                       ```${{ inputs.brand }}
                       npm i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
                       ```
+                      
                       ```${{ inputs.brand }}
                       bun i ${{ steps.package.outputs.name }}@${{ steps.package.outputs.version }}
                       ```
