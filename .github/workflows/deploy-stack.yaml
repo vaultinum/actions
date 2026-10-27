@@ -116,7 +116,7 @@ jobs:
                   SWARM_ID=$(echo $ENDPOINT_INFO | jq -r '.Swarm.Cluster.ID')
 
                   # Replace the image name in the docker-compose.yml file and convert the file content to a valid JSON string
-                  STACK_FILE_CONTENT=$(cat docker-compose.yml | sed "s|image:.*|image: ${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}|g" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
+                  STACK_FILE_CONTENT=$(cat docker-compose.yml | sed "s|image: ${{ inputs.registry }}/${{ inputs.image_name }}:.*|image: ${{ inputs.registry }}/${{ inputs.image_name }}:${{ inputs.tag }}|g" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
                   SECRETS_SUFFIX=$(echo "${{ inputs.secrets_suffix || inputs.deploy_environment }}" | tr '[:lower:]' '[:upper:]')
 
