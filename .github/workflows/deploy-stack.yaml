@@ -121,7 +121,7 @@ jobs:
                   SECRETS_SUFFIX=$(echo "${{ inputs.secrets_suffix || inputs.deploy_environment }}" | tr '[:lower:]' '[:upper:]')
 
                   # Extract the list of secrets from the docker-compose.yml file
-                  SECRETS_LIST=$(yq '.secrets | keys | .[]' docker-compose.yml)
+                  SECRETS_LIST=$(awk '/^secrets:/{f=1;next} /^[^ ]/{f=0} f && /^ +[A-Za-z0-9_-]+: *$/{gsub(/[ :]/,""); print}' docker-compose.yml)
 
                   ENV_VARS=""
 
