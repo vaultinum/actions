@@ -126,9 +126,10 @@ jobs:
               run: npm publish
             - name: Get package info
               id: package
-              uses: codex-team/action-nodejs-package-info@v1.1
-              with:
-                  path: ${{ inputs.working-directory }}
+              working-directory: ${{ inputs.working-directory }}
+              run: |
+                  echo "name=$(jq -r .name package.json)" >> $GITHUB_OUTPUT
+                  echo "version=$(jq -r .version package.json)" >> $GITHUB_OUTPUT
     sonarqube:
         if: ${{ inputs.run_tests != true && (inputs.brand == '' || inputs.brand == 'vaultinum') }}
         uses: ./.github/workflows/sonarqube.yaml
