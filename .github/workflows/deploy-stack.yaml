@@ -186,6 +186,7 @@ jobs:
 
                   cat response.json
             - name: Wait for new container to be stopped
+              if: steps.containers.outputs.ids != ''
               run: |
                   sleep 10
 
