@@ -34,7 +34,6 @@ jobs:
                   pr_title: "Deployment for Staging"
                   pr_body: "Auto-generated deployment PR to 'staging'"
                   github_token: ${{ secrets.GH_TOKEN }}
-                  run_tests: ${{ inputs.run_tests }}
     sonarqube:
         uses: ./.github/workflows/sonarqube.yaml
         secrets: inherit
