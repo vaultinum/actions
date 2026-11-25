@@ -47,7 +47,7 @@ jobs:
                   node-version: 22.21.0
             - name: Check changed on functions
               id: changed-files-specific
-              uses: tj-actions/changed-files@v35.7.8
+              uses: tj-actions/changed-files@v47
               with:
                   files: functions/**
             - name: Change npm cache directory
@@ -83,7 +83,7 @@ jobs:
                   node-version: 22.21.0
             - name: Check changed on functions
               id: changed-files-specific
-              uses: tj-actions/changed-files@v35.7.8
+              uses: tj-actions/changed-files@v47
               with:
                   files: functions/**
             - name: Install dependencies
@@ -104,7 +104,7 @@ jobs:
         name: Tests
         if: ${{ inputs.run_tests && needs.dependencies.outputs.changed-files-specific == 'true' }}
         needs: [dependencies]
-        uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v47
+        uses: vaultinum/actions/.github/workflows/unit-test-functions.yaml@v66
         with:
             vaultinum_owner_account_id: ${{ inputs.vaultinum_owner_account_id }}
         secrets:
@@ -118,7 +118,7 @@ jobs:
         environment: ${{ inputs.functions_environment }}
         steps:
             - name: Deploy
-              uses: vaultinum/actions/deploy-functions@v47
+              uses: vaultinum/actions/deploy-functions@v66
               with:
                   NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
                   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
@@ -131,7 +131,7 @@ jobs:
         environment: ${{ inputs.functions_environment }}
         steps:
             - name: Deploy
-              uses: vaultinum/actions/deploy-functions@v47
+              uses: vaultinum/actions/deploy-functions@v66
               with:
                   NPM_PACKAGE_ACCESS: ${{ secrets.NPM_PACKAGE_ACCESS }}
                   GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}

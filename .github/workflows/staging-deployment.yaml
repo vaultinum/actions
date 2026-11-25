@@ -63,7 +63,7 @@ jobs:
         steps:
             - uses: actions/checkout@v5
             - name: Merge develop -> staging
-              uses: devmasx/merge-branch@master
+              uses: devmasx/merge-branch@1.4.0
               with:
                   type: now
                   message: "Merge develop into staging"
