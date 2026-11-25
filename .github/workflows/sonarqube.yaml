@@ -36,7 +36,7 @@ jobs:
             - name: Checkout Current Repository
               uses: actions/checkout@v5
             - id: changes_detected
-              uses: vaultinum/actions/check-changes@v47
+              uses: vaultinum/actions/check-changes@v66
               with:
                   pattern: ^${{ inputs.working-directory != '.' && format('{0}/', inputs.working-directory) || '' }}(src/|functions/)
     sonarQube:
@@ -50,11 +50,11 @@ jobs:
               uses: actions/checkout@v5
             - name: Download code coverage results
               if: ${{ inputs.run_tests == true }}
-              uses: actions/download-artifact@v4
+              uses: actions/download-artifact@v8
               with:
                   name: code-coverage-report-${{ inputs.brand }}
             - name: SonarQube Scan
-              uses: sonarsource/sonarqube-scan-action@master
+              uses: sonarsource/sonarqube-scan-action@v8
               env:
                   SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
                   SONAR_HOST_URL: ${{ secrets.SONAR_URL }}

@@ -41,7 +41,7 @@ jobs:
               with:
                   ref: ${{ github.event.pull_request.head.sha }}
             - name: Trigger CI
-              uses: vaultinum/actions/ci-rust@v47
+              uses: vaultinum/actions/ci-rust@v66
               with:
                   run_fmt: ${{ inputs.run_fmt }}
                   run_clippy: ${{ inputs.run_clippy }}
